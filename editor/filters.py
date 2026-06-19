@@ -154,6 +154,64 @@ def sepia(img):
     return from_array(a.astype(np.uint8))
 
 
+def adjustment_brightness_contrast(img, params):
+    b = params.get('brightness', 0)
+    c = params.get('contrast', 100) / 100.0
+    a = to_array(img).astype(np.float32)
+    a[..., :3] = np.clip(128 + (a[..., :3] - 128) * c + b, 0, 255)
+    return from_array(a.astype(np.uint8))
+
+
+def adjustment_hsl(img, params):
+    h_rot = params.get('hue', 0)
+    sat = params.get('saturation', 100) / 100.0
+    light = params.get('lightness', 0)
+    from ._colorspace import rgb_to_hsl, hsl_to_rgb
+    a = to_array(img).astype(np.float32)
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    h, s, l = rgb_to_hsl(r, g, b)
+    h = (h + h_rot) % 360
+    s = np.clip(s * sat, 0, 100)
+    l = np.clip(l + light, 0, 100)
+    nr, ng, nb = hsl_to_rgb(h, s, l)
+    a[..., 0] = np.clip(nr, 0, 255)
+    a[..., 1] = np.clip(ng, 0, 255)
+    a[..., 2] = np.clip(nb, 0, 255)
+    return from_array(a.astype(np.uint8))
+
+
+def adjustment_levels(img, params):
+    shadow = params.get('shadow', 0)
+    mid = params.get('mid', 100) / 100.0
+    highlight = params.get('highlight', 255)
+    a = to_array(img).astype(np.float32)
+    d = highlight - shadow
+    if d < 1:
+        d = 1
+    a[..., :3] = np.clip(((a[..., :3] - shadow) / d) ** mid * 255, 0, 255)
+    return from_array(a.astype(np.uint8))
+
+
+def heal_patch(src_arr, dst_arr, radius):
+    """Blend source texture into destination with color matching."""
+    src = src_arr.astype(np.float32)
+    dst = dst_arr.astype(np.float32)
+    src_mean = src.mean(axis=(0, 1))
+    dst_mean = dst.mean(axis=(0, 1))
+    corrected = src + (dst_mean - src_mean)
+    corrected = np.clip(corrected, 0, 255)
+    hh, ww = src.shape[:2]
+    cy, cx = hh // 2, ww // 2
+    Y, X = np.ogrid[:hh, :ww]
+    dist = np.sqrt((Y - cy) ** 2 + (X - cx) ** 2)
+    max_dist = np.sqrt(cy ** 2 + cx ** 2) + 1
+    weight = np.clip(1 - dist / max_dist, 0, 1)
+    for c in range(3):
+        dst_arr[..., c] = (dst[..., c] * (1 - weight) + corrected[..., c] * weight).astype(np.uint8)
+    dst_arr[..., 3] = 255
+    return dst_arr
+
+
 def noise_reduce(img, strength=3):
     a = to_array(img).astype(np.float32)
     k = strength * 2 + 1

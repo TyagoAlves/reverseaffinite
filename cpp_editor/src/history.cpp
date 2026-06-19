@@ -9,7 +9,7 @@ QVector<LayerSnapshot> snapshotFromLayers(const QVector<Layer> &layers)
     return shots;
 }
 
-static void restoreLayers(QVector<Layer> &layers, const QVector<LayerSnapshot> &shots)
+void restoreLayers(QVector<Layer> &layers, const QVector<LayerSnapshot> &shots)
 {
     layers.clear();
     for (const auto &s : shots) {

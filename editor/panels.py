@@ -1,11 +1,11 @@
 from PyQt5.QtCore import Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QColor, QPixmap, QPainter, QIcon, QFont
+from PyQt5.QtGui import QColor, QPixmap, QPainter, QIcon, QFont, QFontDatabase
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QSlider, QColorDialog, QListWidget,
     QListWidgetItem, QSpinBox, QGridLayout, QComboBox,
     QScrollArea, QFrame, QToolButton, QAbstractItemView,
-    QGroupBox, QLineEdit, QSizePolicy,
+    QGroupBox, QLineEdit, QSizePolicy, QCheckBox,
 )
 
 from .layers import BLEND_MODES
@@ -216,7 +216,8 @@ class LayerPanel(QWidget):
         for i, layer in enumerate(canvas.layer_stack.layers):
             vis = "👁" if layer.visible else "○"
             lock = "🔒" if layer.locked else ""
-            item = QListWidgetItem(f" {vis} {lock} {layer.name}")
+            prefix = "⚙ " if hasattr(layer, 'filter_func') and layer.filter_func else ""
+            item = QListWidgetItem(f"{prefix}{vis}{lock} {layer.name}")
             item.setData(Qt.UserRole, i)
             self.list_widget.addItem(item)
         if 0 <= canvas.layer_stack.active_index < self.list_widget.count():
@@ -304,17 +305,49 @@ class LayerPanel(QWidget):
 
 
 class HistoryPanel(QWidget):
-    def __init__(self, history_getter, parent=None):
+    def __init__(self, canvas_getter, parent=None):
         super().__init__(parent)
-        self.get_history = history_getter
+        self.get_canvas = canvas_getter
         layout = QVBoxLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)
 
+        self.count_label = QLabel("History: 0 entries")
+        layout.addWidget(self.count_label)
+
         self.list_widget = QListWidget()
+        self.list_widget.currentRowChanged.connect(self._row_changed)
         layout.addWidget(self.list_widget)
 
     def refresh(self):
-        pass
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        history = canvas.history
+        self.list_widget.blockSignals(True)
+        cur_row = self.list_widget.currentRow()
+        self.list_widget.clear()
+        for i, entry in enumerate(history.stack):
+            item = QListWidgetItem(entry.description)
+            item.setData(Qt.UserRole, i)
+            self.list_widget.addItem(item)
+        if 0 <= history.index < self.list_widget.count():
+            self.list_widget.setCurrentRow(history.index)
+        self.list_widget.blockSignals(False)
+        self.count_label.setText(f"History: {len(history.stack)} entries")
+
+    def _row_changed(self, row):
+        if row < 0:
+            return
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        history = canvas.history
+        if row != history.index:
+            history.jump_to(canvas.layer_stack, row)
+            canvas._refresh()
+
+    def set_canvas(self, canvas_getter):
+        self.get_canvas = canvas_getter
 
 
 class ToolOptionsPanel(QWidget):
@@ -344,5 +377,36 @@ class ToolOptionsPanel(QWidget):
         self.flow_slider.setValue(100)
         self.flow_slider.setFixedWidth(80)
         layout.addWidget(self.flow_slider)
+
+        layout.addWidget(QLabel("Font:"))
+        self.font_combo = QComboBox()
+        self.font_combo.addItems(QFontDatabase().families())
+        self.font_combo.setCurrentText("Arial")
+        self.font_combo.setFixedWidth(120)
+        layout.addWidget(self.font_combo)
+
+        self.font_size_spin = QSpinBox()
+        self.font_size_spin.setRange(1, 999)
+        self.font_size_spin.setValue(32)
+        self.font_size_spin.setFixedWidth(50)
+        layout.addWidget(self.font_size_spin)
+
+        self.bold_btn = QToolButton()
+        self.bold_btn.setText("B")
+        self.bold_btn.setCheckable(True)
+        self.bold_btn.setFixedSize(24, 24)
+        layout.addWidget(self.bold_btn)
+
+        self.italic_btn = QToolButton()
+        self.italic_btn.setText("I")
+        self.italic_btn.setCheckable(True)
+        self.italic_btn.setFixedSize(24, 24)
+        layout.addWidget(self.italic_btn)
+
+        self.underline_btn = QToolButton()
+        self.underline_btn.setText("U")
+        self.underline_btn.setCheckable(True)
+        self.underline_btn.setFixedSize(24, 24)
+        layout.addWidget(self.underline_btn)
 
         layout.addStretch()

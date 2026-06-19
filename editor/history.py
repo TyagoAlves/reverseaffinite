@@ -1,5 +1,6 @@
 from collections import deque
 import copy
+from PyQt5.QtCore import QObject, pyqtSignal
 
 
 class HistoryEntry:
@@ -9,8 +10,11 @@ class HistoryEntry:
         self.active_index = active_index
 
 
-class HistoryManager:
+class HistoryManager(QObject):
+    history_changed = pyqtSignal()
+
     def __init__(self, max_states=100):
+        super().__init__()
         self.stack = deque(maxlen=max_states)
         self.index = -1
 
@@ -22,12 +26,14 @@ class HistoryManager:
             self.stack.pop()
         self.stack.append(entry)
         self.index = len(self.stack) - 1
+        self.history_changed.emit()
 
     def undo(self, layer_stack):
         if self.index <= 0:
             return False
         self.index -= 1
         self._restore(layer_stack)
+        self.history_changed.emit()
         return True
 
     def redo(self, layer_stack):
@@ -35,7 +41,16 @@ class HistoryManager:
             return False
         self.index += 1
         self._restore(layer_stack)
+        self.history_changed.emit()
         return True
+
+    def jump_to(self, layer_stack, index):
+        if 0 <= index < len(self.stack):
+            self.index = index
+            self._restore(layer_stack)
+            self.history_changed.emit()
+            return True
+        return False
 
     def _restore(self, layer_stack):
         entry = self.stack[self.index]
@@ -60,3 +75,4 @@ class HistoryManager:
     def clear(self):
         self.stack.clear()
         self.index = -1
+        self.history_changed.emit()

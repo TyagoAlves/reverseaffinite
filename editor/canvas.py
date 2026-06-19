@@ -1,11 +1,13 @@
-from PyQt5.QtCore import Qt, QPointF, QRectF, pyqtSignal, QRect
+from PyQt5.QtCore import Qt, QPointF, QRectF, pyqtSignal, QRect, QTimer
 from PyQt5.QtGui import (
     QPainter, QPixmap, QPen, QColor, QImage, QBrush,
-    QTransform, QPolygonF, QFont, QFontMetrics,
+    QTransform, QPolygonF, QFont, QFontMetrics, QBitmap, QRegion,
+    QPainterPath,
 )
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
 import math
 from collections import deque
+import numpy as np
 
 from .layers import LayerStack
 from .history import HistoryManager
@@ -17,6 +19,7 @@ class CanvasView(QGraphicsView):
     color_picked = pyqtSignal(QColor)
     status_changed = pyqtSignal(str)
     zoom_changed = pyqtSignal(float)
+    history_changed = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -27,6 +30,7 @@ class CanvasView(QGraphicsView):
 
         self.layer_stack = LayerStack(800, 600)
         self.history = HistoryManager()
+        self.history.history_changed.connect(self.history_changed.emit)
         self.history.push("New document", self.layer_stack.layers, self.layer_stack.active_index)
 
         self.zoom_level = 1.0
@@ -47,9 +51,23 @@ class CanvasView(QGraphicsView):
         self.rubber_band_end = None
         self.has_rubber_band = False
         self.lasso_points = []
+        self.has_lasso = False
         self.gradient_start = None
         self.shape_start = None
         self.clone_source = None
+
+        self.selection_mask = None
+        self.selection_path = None
+        self.selection_phase = 0
+        self.selection_timer = QTimer()
+        self.selection_timer.timeout.connect(self._march_selection)
+        self.selection_timer.start(120)
+
+        self.pen_path = []
+        self.pen_handle_offsets = []
+        self.crop_active = False
+        self.crop_start = None
+        self.crop_end = None
 
         self.show_grid = False
         self.show_rulers = True
@@ -160,12 +178,105 @@ class CanvasView(QGraphicsView):
         pos = self.pixmap_item.pos()
         self.pixmap_item.setPos(pos.x() + self.pan_offset_x, pos.y() + self.pan_offset_y)
 
+    def _march_selection(self):
+        if self.selection_mask is not None:
+            self.selection_phase = (self.selection_phase + 1) % 6
+            self.viewport().update()
+
+    def has_selection(self):
+        return self.selection_mask is not None
+
+    def clear_selection(self):
+        self.selection_mask = None
+        self.selection_path = None
+        self.selection_phase = 0
+        self.viewport().update()
+
+    def _apply_selection_clip(self, painter):
+        if self.selection_mask is None:
+            return
+        if self.selection_path is not None:
+            painter.setClipPath(self.selection_path)
+        else:
+            mono = self.selection_mask.convertToFormat(QImage.Format_Mono,
+                                                       Qt.ThresholdDither)
+            bitmap = QBitmap.fromImage(mono)
+            region = QRegion(bitmap)
+            painter.setClipRegion(region)
+
+    def _selection_mask_from_path(self, path):
+        w = int(self.scene.sceneRect().width())
+        h = int(self.scene.sceneRect().height())
+        mask = QImage(w, h, QImage.Format_ARGB32)
+        mask.fill(Qt.transparent)
+        p = QPainter(mask)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.setPen(Qt.NoPen)
+        p.setBrush(QBrush(QColor(255, 255, 255)))
+        p.drawPath(path)
+        p.end()
+        return mask
+
+    def set_selection_rect(self, rect):
+        from PyQt5.QtCore import QRect
+        path = QPainterPath()
+        path.addRect(QRectF(rect))
+        self.selection_path = path
+        self.selection_mask = self._selection_mask_from_path(path)
+        self.selection_phase = 0
+        self.viewport().update()
+
+    def set_selection_ellipse(self, rect):
+        from PyQt5.QtCore import QRect
+        path = QPainterPath()
+        path.addEllipse(QRectF(rect))
+        self.selection_path = path
+        self.selection_mask = self._selection_mask_from_path(path)
+        self.selection_phase = 0
+        self.viewport().update()
+
+    def set_selection_lasso(self, points):
+        path = QPainterPath()
+        poly = QPolygonF(points)
+        path.addPolygon(poly)
+        path.closeSubpath()
+        self.selection_path = path
+        self.selection_mask = self._selection_mask_from_path(path)
+        self.selection_phase = 0
+        self.viewport().update()
+
+    def set_selection_mask_image(self, mask_qimage):
+        self.selection_mask = mask_qimage
+        self.selection_path = None
+        self.selection_phase = 0
+        self.viewport().update()
+
+    def move_layer_content(self, dx, dy):
+        layer = self.layer_stack.active
+        if not layer or layer.locked:
+            return False
+        w, h = layer.image.width(), layer.image.height()
+        i_dx, i_dy = int(dx), int(dy)
+        if i_dx == 0 and i_dy == 0:
+            return False
+        new_img = QImage(w, h, QImage.Format_ARGB32)
+        new_img.fill(Qt.transparent)
+        p = QPainter(new_img)
+        p.setRenderHint(QPainter.SmoothPixmapTransform)
+        p.drawImage(i_dx, i_dy, layer.image)
+        p.end()
+        layer.image = new_img
+        self._refresh()
+        return True
+
     def draw_point(self, pos):
         layer = self.layer_stack.active
         if not layer or layer.locked:
             return
         p = QPainter(layer.image)
         p.setRenderHint(QPainter.Antialiasing)
+        if self.has_selection():
+            self._apply_selection_clip(p)
         c = self.tool_color
         c.setAlpha(int(255 * self.tool_opacity))
         pen = QPen(c, self.tool_size, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
@@ -180,6 +291,8 @@ class CanvasView(QGraphicsView):
             return
         p = QPainter(layer.image)
         p.setRenderHint(QPainter.Antialiasing)
+        if self.has_selection():
+            self._apply_selection_clip(p)
         c = self.tool_color
         c.setAlpha(int(255 * self.tool_opacity))
         pen = QPen(c, self.tool_size, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
@@ -194,6 +307,8 @@ class CanvasView(QGraphicsView):
             return
         p = QPainter(layer.image)
         p.setRenderHint(QPainter.Antialiasing)
+        if self.has_selection():
+            self._apply_selection_clip(p)
         p.setCompositionMode(QPainter.CompositionMode_Clear)
         pen = QPen(QColor(0, 0, 0, 0), self.tool_size, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
         p.setPen(pen)
@@ -207,6 +322,8 @@ class CanvasView(QGraphicsView):
             return
         p = QPainter(layer.image)
         p.setRenderHint(QPainter.Antialiasing)
+        if self.has_selection():
+            self._apply_selection_clip(p)
         p.setCompositionMode(QPainter.CompositionMode_Clear)
         pen = QPen(QColor(0, 0, 0, 0), self.tool_size, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
         p.setPen(pen)
@@ -227,8 +344,8 @@ class CanvasView(QGraphicsView):
         if not layer or layer.locked:
             return
         x, y = int(pos.x()), int(pos.y())
-        w, h = layer.image.width(), layer.image.height()
-        if x < 0 or x >= w or y < 0 or y >= h:
+        w_i, h_i = layer.image.width(), layer.image.height()
+        if x < 0 or x >= w_i or y < 0 or y >= h_i:
             return
 
         target = layer.image.pixelColor(x, y)
@@ -240,6 +357,8 @@ class CanvasView(QGraphicsView):
         visited = {(x, y)}
 
         p = QPainter(layer.image)
+        if self.has_selection():
+            self._apply_selection_clip(p)
         p.setPen(QPen(self.tool_color, 1))
 
         while q:
@@ -247,14 +366,46 @@ class CanvasView(QGraphicsView):
             if layer.image.pixelColor(cx, cy) == target:
                 p.drawPoint(cx, cy)
                 for nx, ny in [(cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1)]:
-                    if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in visited:
+                    if 0 <= nx < w_i and 0 <= ny < h_i and (nx, ny) not in visited:
                         visited.add((nx, ny))
                         q.append((nx, ny))
         p.end()
         self._refresh()
 
     def flood_fill_select(self, pos):
-        pass
+        layer = self.layer_stack.active
+        if not layer or layer.locked:
+            return
+        x, y = int(pos.x()), int(pos.y())
+        w_i, h_i = layer.image.width(), layer.image.height()
+        if x < 0 or x >= w_i or y < 0 or y >= h_i:
+            return
+
+        target = layer.image.pixelColor(x, y)
+        tolerance = 32
+
+        q = deque()
+        q.append((x, y))
+        visited = np.zeros((h_i, w_i), dtype=bool)
+        visited[y, x] = True
+
+        mask = QImage(w_i, h_i, QImage.Format_ARGB32)
+        mask.fill(Qt.transparent)
+
+        while q:
+            cx, cy = q.popleft()
+            color = layer.image.pixelColor(cx, cy)
+            diff = (abs(color.red() - target.red()) +
+                    abs(color.green() - target.green()) +
+                    abs(color.blue() - target.blue()))
+            if diff <= tolerance:
+                mask.setPixel(cx, cy, QColor(255, 255, 255).rgba())
+                for nx, ny in [(cx+1, cy), (cx-1, cy), (cx, cy+1), (cx, cy-1)]:
+                    if 0 <= nx < w_i and 0 <= ny < h_i and not visited[ny, nx]:
+                        visited[ny, nx] = True
+                        q.append((nx, ny))
+
+        self.set_selection_mask_image(mask)
 
     def draw_gradient(self, start, end):
         layer = self.layer_stack.active
@@ -266,6 +417,8 @@ class CanvasView(QGraphicsView):
         grad.setColorAt(0.0, self.tool_color)
         grad.setColorAt(1.0, self.bg_color)
         p = QPainter(layer.image)
+        if self.has_selection():
+            self._apply_selection_clip(p)
         p.fillRect(0, 0, w, h, grad)
         p.end()
         self._refresh()
@@ -276,6 +429,8 @@ class CanvasView(QGraphicsView):
             return
         p = QPainter(layer.image)
         p.setRenderHint(QPainter.Antialiasing)
+        if self.has_selection():
+            self._apply_selection_clip(p)
         pen = QPen(self.tool_color, self.tool_size, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
         p.setPen(pen)
         rect = QRectF(start, end)
@@ -294,6 +449,8 @@ class CanvasView(QGraphicsView):
             return
         color = layer.image.pixelColor(sx, sy)
         p = QPainter(layer.image)
+        if self.has_selection():
+            self._apply_selection_clip(p)
         pen = QPen(color, self.tool_size, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
         p.setPen(pen)
         p.drawPoint(dx, dy)
@@ -310,11 +467,31 @@ class CanvasView(QGraphicsView):
         painter.drawRect(rect.normalized())
         painter.restore()
 
+    def draw_selection_overlay(self, painter):
+        if self.selection_mask is None:
+            return
+        w = self.selection_mask.width()
+        h = self.selection_mask.height()
+        painter.save()
+        painter.setPen(Qt.NoPen)
+        tint = QColor(60, 120, 255, 40)
+        painter.setBrush(QBrush(tint))
+        painter.drawImage(0, 0, self.selection_mask)
+        if self.selection_path is not None:
+            pen = QPen(QColor(60, 120, 255), 1, Qt.CustomDashLine)
+            pen.setDashPattern([6, 4])
+            pen.setDashOffset(self.selection_phase)
+            painter.setPen(pen)
+            painter.setBrush(Qt.NoBrush)
+            painter.drawPath(self.selection_path)
+        painter.restore()
+
     def draw_lasso(self, painter):
-        if len(self.lasso_points) < 2:
+        if not self.has_lasso or len(self.lasso_points) < 2:
             return
         painter.save()
         painter.setPen(QPen(QColor(100, 150, 255, 200), 1, Qt.DashLine))
+        painter.setBrush(QBrush(QColor(100, 150, 255, 20)))
         poly = QPolygonF([pt for pt in self.lasso_points])
         painter.drawPolygon(poly)
         painter.restore()
@@ -357,10 +534,70 @@ class CanvasView(QGraphicsView):
             painter.drawText(2, y + 10, str(y))
         painter.restore()
 
+    def draw_pen_path(self, painter):
+        if not self.pen_path or len(self.pen_path) < 2:
+            return
+        painter.save()
+        path = QPainterPath()
+        path.moveTo(self.pen_path[0])
+        for i in range(1, len(self.pen_path)):
+            prev = self.pen_path[i - 1]
+            curr = self.pen_path[i]
+            h_out = self.pen_handle_offsets[i - 1] if i - 1 < len(self.pen_handle_offsets) else None
+            h_in = self.pen_handle_offsets[i] if i < len(self.pen_handle_offsets) else None
+            if h_out is not None and h_in is not None:
+                path.cubicTo(prev + h_out, curr - h_in, curr)
+            elif h_out is not None:
+                path.cubicTo(prev + h_out, curr, curr)
+            elif h_in is not None:
+                path.cubicTo(prev, curr - h_in, curr)
+            else:
+                path.lineTo(curr)
+        painter.setPen(QPen(QColor(self.tool_color), 1.5 / self.zoom_level))
+        painter.setBrush(QBrush(self.tool_color, Qt.NoBrush))
+        painter.drawPath(path)
+        for pt in self.pen_path:
+            painter.setBrush(QBrush(self.tool_color))
+            painter.setPen(QPen(Qt.white, 1))
+            r = 3.0 / self.zoom_level
+            painter.drawEllipse(pt, r, r)
+        painter.restore()
+
+    def draw_crop_overlay(self, painter):
+        if not self.crop_active or self.crop_start is None or self.crop_end is None:
+            return
+        rect = QRectF(self.crop_start, self.crop_end).normalized()
+        painter.save()
+        overlay_color = QColor(0, 0, 0, 128)
+        painter.setBrush(overlay_color)
+        painter.setPen(Qt.NoPen)
+        sr = self.scene.sceneRect()
+        painter.drawRect(0, 0, sr.width(), rect.top())
+        painter.drawRect(0, rect.bottom(), sr.width(), sr.height() - rect.bottom())
+        painter.drawRect(0, rect.top(), rect.left(), rect.height())
+        painter.drawRect(rect.right(), rect.top(), sr.width() - rect.right(), rect.height())
+        painter.setBrush(Qt.NoBrush)
+        painter.setPen(QPen(QColor(100, 150, 255), 1.5 / self.zoom_level))
+        painter.drawRect(rect)
+        hs = 6.0 / self.zoom_level
+        painter.setBrush(QColor(100, 150, 255))
+        painter.setPen(Qt.NoPen)
+        for pt in [rect.topLeft(), rect.topRight(), rect.bottomLeft(), rect.bottomRight()]:
+            painter.drawRect(QRectF(pt.x() - hs / 2, pt.y() - hs / 2, hs, hs))
+        for pt in [QPointF(rect.center().x(), rect.top()),
+                   QPointF(rect.center().x(), rect.bottom()),
+                   QPointF(rect.left(), rect.center().y()),
+                   QPointF(rect.right(), rect.center().y())]:
+            painter.drawRect(QRectF(pt.x() - hs / 2, pt.y() - hs / 2, hs, hs))
+        painter.restore()
+
     def draw_overlay(self, painter):
         self.draw_grid(painter)
+        self.draw_selection_overlay(painter)
         self.draw_rubber_band(painter)
         self.draw_lasso(painter)
+        self.draw_pen_path(painter)
+        self.draw_crop_overlay(painter)
 
     def drawForeground(self, painter, rect):
         self.draw_overlay(painter)
@@ -376,6 +613,11 @@ class CanvasView(QGraphicsView):
             super().wheelEvent(event)
 
     def mousePressEvent(self, event):
+        if event.button() == Qt.RightButton:
+            from .tools import PenTool
+            if isinstance(self.tool, PenTool):
+                self.tool.finalize(self)
+            return
         if event.button() == Qt.LeftButton:
             self.drawing = True
             pos = self.mapToScene(event.pos())
@@ -415,11 +657,15 @@ class CanvasView(QGraphicsView):
         elif key == Qt.Key_L and not mods: self.set_tool("Lasso")
         elif key == Qt.Key_W and not mods: self.set_tool("Magic Wand")
         elif key == Qt.Key_B and not mods: self.set_tool("Brush")
-        elif key == Qt.Key_P and not mods: self.set_tool("Pencil")
+        elif key == Qt.Key_P and not mods: self.set_tool("Pen")
+        elif key == Qt.Key_N and not mods: self.set_tool("Pencil")
         elif key == Qt.Key_E and not mods: self.set_tool("Eraser")
         elif key == Qt.Key_G and not mods: self.set_tool("Gradient")
         elif key == Qt.Key_U and not mods: self.set_tool("Shape")
         elif key == Qt.Key_S and not mods: self.set_tool("Clone Stamp")
+        elif key == Qt.Key_J and not mods: self.set_tool("Healing Brush")
+        elif key == Qt.Key_C and not mods: self.set_tool("Crop")
+        elif key == Qt.Key_T and not mods: self.set_tool("Text")
         elif key == Qt.Key_H and not mods: self.set_tool("Hand")
         elif key == Qt.Key_Z and not mods: self.set_tool("Zoom")
         elif key == Qt.Key_I and not mods: self.set_tool("Color Picker")
@@ -427,6 +673,22 @@ class CanvasView(QGraphicsView):
 
         elif key == Qt.Key_BracketRight and not mods: self.set_tool_size(self.tool_size + 1)
         elif key == Qt.Key_BracketLeft and not mods: self.set_tool_size(max(1, self.tool_size - 1))
+
+        # Enter / Return to finalize pen or apply crop
+        elif key in (Qt.Key_Return, Qt.Key_Enter) and not mods:
+            from .tools import PenTool, CropTool
+            if isinstance(self.tool, PenTool):
+                self.tool.finalize(self)
+            elif isinstance(self.tool, CropTool):
+                self.tool.apply(self)
+
+        # Escape to cancel pen or crop
+        elif key == Qt.Key_Escape and not mods:
+            from .tools import PenTool, CropTool
+            if isinstance(self.tool, PenTool):
+                self.tool.cancel(self)
+            elif isinstance(self.tool, CropTool):
+                self.tool.cancel(self)
 
         # Ctrl+
         elif mods & Qt.ControlModifier:

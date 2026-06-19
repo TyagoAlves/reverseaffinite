@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QColor, QKeySequence, QFont, QIcon
+from PyQt5.QtGui import QColor, QKeySequence, QFont, QIcon, QFontDatabase
 from PyQt5.QtWidgets import (
     QMainWindow, QAction, QFileDialog, QColorDialog,
     QToolBar, QToolButton, QSpinBox, QLabel, QComboBox,
@@ -263,6 +263,38 @@ class MainWindow(QMainWindow):
         self.tool_options.addWidget(QLabel("  Color:"))
         self.tool_options.addWidget(self.color_btn)
 
+        self.tool_options.addSeparator()
+        self.tool_options.addWidget(QLabel("  Font:"))
+        self.font_combo = QComboBox()
+        self.font_combo.addItems(QFontDatabase().families())
+        self.font_combo.setCurrentText("Arial")
+        self.font_combo.setFixedWidth(120)
+        self.tool_options.addWidget(self.font_combo)
+
+        self.font_size_spin = QSpinBox()
+        self.font_size_spin.setRange(1, 999)
+        self.font_size_spin.setValue(32)
+        self.font_size_spin.setFixedWidth(50)
+        self.tool_options.addWidget(self.font_size_spin)
+
+        self.bold_btn = QToolButton()
+        self.bold_btn.setText("B")
+        self.bold_btn.setCheckable(True)
+        self.bold_btn.setFixedSize(24, 24)
+        self.tool_options.addWidget(self.bold_btn)
+
+        self.italic_btn = QToolButton()
+        self.italic_btn.setText("I")
+        self.italic_btn.setCheckable(True)
+        self.italic_btn.setFixedSize(24, 24)
+        self.tool_options.addWidget(self.italic_btn)
+
+        self.underline_btn = QToolButton()
+        self.underline_btn.setText("U")
+        self.underline_btn.setCheckable(True)
+        self.underline_btn.setFixedSize(24, 24)
+        self.tool_options.addWidget(self.underline_btn)
+
         self.addToolBar(self.tool_options)
 
         # Color panel (right dock)
@@ -287,9 +319,9 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, ndock)
 
         # History panel
-        hp = HistoryPanel(lambda: self.canvas.history)
+        self.history_panel = HistoryPanel(lambda: self.canvas)
         hdock = QDockWidget("History", self)
-        hdock.setWidget(hp)
+        hdock.setWidget(self.history_panel)
         self.addDockWidget(Qt.RightDockWidgetArea, hdock)
 
         self.create_menus()
@@ -298,6 +330,7 @@ class MainWindow(QMainWindow):
         self.canvas.mouse_moved.connect(self._update_coords)
         self.canvas.status_changed.connect(self.statusBar().showMessage)
         self.canvas.color_picked.connect(self._sync_color_btn)
+        self.canvas.history_changed.connect(self.history_panel.refresh)
         self.canvas.layer_stack.layers = self.canvas.layer_stack.layers  # force ref
 
         self.current_path = None
@@ -365,6 +398,11 @@ class MainWindow(QMainWindow):
         layer_m.addAction("&Duplicate Layer", self._dup_layer)
         layer_m.addAction("&Delete Layer", self._del_layer)
         layer_m.addSeparator()
+        adj_m = layer_m.addMenu("New Adjustment Layer")
+        adj_m.addAction("Brightness / Contrast", lambda: self._add_adjustment("brightness_contrast"))
+        adj_m.addAction("Hue / Saturation", lambda: self._add_adjustment("hsl"))
+        adj_m.addAction("Levels", lambda: self._add_adjustment("levels"))
+        layer_m.addSeparator()
         layer_m.addAction("Merge &Visible", self._merge_visible)
         layer_m.addAction("&Flatten Image", self._flatten)
 
@@ -379,8 +417,16 @@ class MainWindow(QMainWindow):
         view_m.addSeparator()
         ga = view_m.addAction("Show &Grid")
         ga.setCheckable(True)
-        ga.triggered.connect(lambda v: setattr(self.canvas, 'show_grid', v))
-        view_m.addAction("&Snap to Grid")
+        ga.setChecked(False)
+        ga.triggered.connect(lambda v: setattr(self.canvas, 'show_grid', v) or self.canvas.viewport().update())
+        ra = view_m.addAction("Show &Rulers")
+        ra.setCheckable(True)
+        ra.setChecked(True)
+        ra.triggered.connect(lambda v: setattr(self.canvas, 'show_rulers', v) or self.canvas.viewport().update())
+        sa = view_m.addAction("&Snap to Grid")
+        sa.setCheckable(True)
+        sa.setChecked(False)
+        sa.triggered.connect(lambda v: setattr(self.canvas, 'snap_to_grid', v))
         view_m.addSeparator()
         view_m.addAction("&Reset View", self.canvas.zoom_fit)
 
@@ -535,6 +581,107 @@ class MainWindow(QMainWindow):
         self.canvas._save_state("Flatten")
         self.canvas.layer_stack.flatten()
         self.canvas._refresh()
+        self.layer_panel.refresh()
+
+    def _add_adjustment(self, adj_type):
+        canvas = self.canvas
+        from .layers import AdjustmentLayer
+        from .filters import adjustment_brightness_contrast, adjustment_hsl, adjustment_levels
+
+        params = {}
+        if adj_type == "brightness_contrast":
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Brightness / Contrast")
+            layout = QVBoxLayout(dialog)
+            b_slider = QSlider(Qt.Horizontal)
+            b_slider.setRange(-255, 255)
+            b_slider.setValue(0)
+            layout.addWidget(QLabel("Brightness:"))
+            layout.addWidget(b_slider)
+            c_slider = QSlider(Qt.Horizontal)
+            c_slider.setRange(0, 300)
+            c_slider.setValue(100)
+            layout.addWidget(QLabel("Contrast:"))
+            layout.addWidget(c_slider)
+            def on_ok():
+                params['brightness'] = b_slider.value()
+                params['contrast'] = c_slider.value()
+                dialog.accept()
+            btn = QPushButton("OK")
+            btn.clicked.connect(on_ok)
+            layout.addWidget(btn)
+            dialog.exec_()
+            func = adjustment_brightness_contrast
+
+        elif adj_type == "hsl":
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Hue / Saturation")
+            layout = QVBoxLayout(dialog)
+            h_slider = QSlider(Qt.Horizontal)
+            h_slider.setRange(-180, 180)
+            h_slider.setValue(0)
+            layout.addWidget(QLabel("Hue:"))
+            layout.addWidget(h_slider)
+            s_slider = QSlider(Qt.Horizontal)
+            s_slider.setRange(0, 300)
+            s_slider.setValue(100)
+            layout.addWidget(QLabel("Saturation:"))
+            layout.addWidget(s_slider)
+            l_slider = QSlider(Qt.Horizontal)
+            l_slider.setRange(-100, 100)
+            l_slider.setValue(0)
+            layout.addWidget(QLabel("Lightness:"))
+            layout.addWidget(l_slider)
+            def on_ok():
+                params['hue'] = h_slider.value()
+                params['saturation'] = s_slider.value()
+                params['lightness'] = l_slider.value()
+                dialog.accept()
+            btn = QPushButton("OK")
+            btn.clicked.connect(on_ok)
+            layout.addWidget(btn)
+            dialog.exec_()
+            func = adjustment_hsl
+
+        elif adj_type == "levels":
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Levels")
+            layout = QVBoxLayout(dialog)
+            sh_slider = QSlider(Qt.Horizontal)
+            sh_slider.setRange(0, 255)
+            sh_slider.setValue(0)
+            layout.addWidget(QLabel("Shadow:"))
+            layout.addWidget(sh_slider)
+            m_slider = QSlider(Qt.Horizontal)
+            m_slider.setRange(10, 990)
+            m_slider.setValue(100)
+            layout.addWidget(QLabel("Mid (gamma):"))
+            layout.addWidget(m_slider)
+            hi_slider = QSlider(Qt.Horizontal)
+            hi_slider.setRange(0, 255)
+            hi_slider.setValue(255)
+            layout.addWidget(QLabel("Highlight:"))
+            layout.addWidget(hi_slider)
+            def on_ok():
+                params['shadow'] = sh_slider.value()
+                params['mid'] = m_slider.value()
+                params['highlight'] = hi_slider.value()
+                dialog.accept()
+            btn = QPushButton("OK")
+            btn.clicked.connect(on_ok)
+            layout.addWidget(btn)
+            dialog.exec_()
+            func = adjustment_levels
+
+        if not params:
+            return
+        canvas._save_state(f"Add {adj_type} adjustment")
+        w = canvas.layer_stack.layers[0].image.width()
+        h = canvas.layer_stack.layers[0].image.height()
+        adj = AdjustmentLayer(w, h, f"{adj_type.replace('_', ' ').title()}", func, params)
+        canvas.layer_stack.layers.append(adj)
+        canvas.layer_stack.active_index = len(canvas.layer_stack.layers) - 1
+        canvas._refresh()
         self.layer_panel.refresh()
 
     def _show_filter_gallery(self):

@@ -2,11 +2,20 @@
 Professional tools inspired by industry standards.
 Hotkeys:
   V - Move          M - Rect Select   L - Lasso
-  W - Magic Wand    B - Brush         P - Pencil
-  E - Eraser        G - Gradient      U - Shape
-  S - Clone Stamp   Y - History Brush H - Hand
-  Z - Zoom          I - Color Picker  K - Fill
+  W - Magic Wand    B - Brush         P - Pen
+  N - Pencil        E - Eraser        G - Gradient
+  U - Shape         S - Clone Stamp   Y - History Brush
+  H - Hand          Z - Zoom          I - Color Picker
+  K - Fill          J - Healing Brush C - Crop
+  T - Text
 """
+
+from PyQt5.QtCore import Qt, QPointF, QRectF
+from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QFont, QFontDatabase, QPainterPath
+from PyQt5.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QComboBox,
+    QSpinBox, QPushButton, QLabel, QCheckBox, QMessageBox,
+)
 
 SHORTCUT_MAP = {}
 
@@ -39,11 +48,11 @@ class MoveTool(Tool):
 
     def move(self, canvas, last, pos, mods):
         if canvas.dragging_layer:
-            dx = pos.x() - last.x()
-            dy = pos.y() - last.y()
-            canvas.pan_offset_x += dx
-            canvas.pan_offset_y += dy
-            canvas.update_pixmap_position()
+            dx = pos.x() - canvas.drag_start.x()
+            dy = pos.y() - canvas.drag_start.y()
+            if abs(dx) >= 0.5 or abs(dy) >= 0.5:
+                canvas.move_layer_content(dx, dy)
+                canvas.drag_start = pos
 
     def release(self, canvas, pos, mods):
         canvas.dragging_layer = False
@@ -65,14 +74,11 @@ class RectSelectTool(Tool):
 
     def release(self, canvas, pos, mods):
         canvas.has_rubber_band = False
-        canvas.selection = self._rect(canvas.selection_start, pos)
-        canvas.update()
-
-    def _rect(self, p1, p2):
         from PyQt5.QtCore import QRect, QPoint
-        x1, y1 = int(p1.x()), int(p1.y())
-        x2, y2 = int(p2.x()), int(p2.y())
-        return QRect(QPoint(min(x1, x2), min(y1, y2)), QPoint(max(x1, x2), max(y1, y2)))
+        x1, y1 = int(canvas.selection_start.x()), int(canvas.selection_start.y())
+        x2, y2 = int(pos.x()), int(pos.y())
+        rect = QRect(QPoint(min(x1, x2), min(y1, y2)), QPoint(max(x1, x2), max(y1, y2)))
+        canvas.set_selection_rect(rect)
 
 
 class EllipseSelectTool(Tool):
@@ -81,9 +87,21 @@ class EllipseSelectTool(Tool):
 
     def press(self, canvas, pos, mods):
         canvas.selection_start = pos
+        canvas.rubber_band_start = pos
+        canvas.rubber_band_end = pos
+        canvas.has_rubber_band = True
+
+    def move(self, canvas, last, pos, mods):
+        canvas.rubber_band_end = pos
+        canvas.viewport().update()
 
     def release(self, canvas, pos, mods):
-        canvas.update()
+        canvas.has_rubber_band = False
+        from PyQt5.QtCore import QRect, QPoint
+        x1, y1 = int(canvas.selection_start.x()), int(canvas.selection_start.y())
+        x2, y2 = int(pos.x()), int(pos.y())
+        rect = QRect(QPoint(min(x1, x2), min(y1, y2)), QPoint(max(x1, x2), max(y1, y2)))
+        canvas.set_selection_ellipse(rect)
 
 
 class LassoTool(Tool):
@@ -92,15 +110,19 @@ class LassoTool(Tool):
 
     def press(self, canvas, pos, mods):
         canvas.lasso_points = [pos]
+        canvas.has_lasso = True
 
     def move(self, canvas, last, pos, mods):
         canvas.lasso_points.append(pos)
-        canvas.update()
+        canvas.viewport().update()
 
     def release(self, canvas, pos, mods):
+        canvas.has_lasso = False
         if canvas.lasso_points:
             canvas.lasso_points.append(pos)
-        canvas.update()
+            canvas.set_selection_lasso(canvas.lasso_points)
+        canvas.lasso_points = []
+        canvas.viewport().update()
 
 
 class MagicWandTool(Tool):
@@ -113,7 +135,7 @@ class MagicWandTool(Tool):
 
 class PencilTool(Tool):
     name = "Pencil"
-    shortcut = "P"
+    shortcut = "N"
 
     def press(self, canvas, pos, mods):
         canvas.draw_point(pos)
@@ -228,24 +250,256 @@ class ZoomTool(Tool):
             canvas.zoom_in()
 
 
+class PenTool(Tool):
+    name = "Pen"
+    shortcut = "P"
+    dragging = False
+
+    def press(self, canvas, pos, mods):
+        if not hasattr(canvas, 'pen_path'):
+            canvas.pen_path = []
+            canvas.pen_handle_offsets = []
+        canvas.pen_path.append(pos)
+        canvas.pen_handle_offsets.append(None)
+        self.dragging = True
+        self.press_pos = pos
+        canvas.update()
+
+    def move(self, canvas, last, pos, mods):
+        if self.dragging and hasattr(canvas, 'pen_path') and canvas.pen_path:
+            offset = pos - canvas.pen_path[-1]
+            if offset.manhattanLength() > 3:
+                canvas.pen_handle_offsets[-1] = offset
+            canvas.update()
+
+    def release(self, canvas, pos, mods):
+        self.dragging = False
+
+    def finalize(self, canvas):
+        if not hasattr(canvas, 'pen_path') or len(canvas.pen_path) < 2:
+            canvas.pen_path = []
+            canvas.pen_handle_offsets = []
+            canvas.update()
+            return
+        layer = canvas.layer_stack.active
+        if layer and not layer.locked:
+            p = QPainter(layer.image)
+            p.setRenderHint(QPainter.Antialiasing)
+            path = QPainterPath()
+            path.moveTo(canvas.pen_path[0])
+            for i in range(1, len(canvas.pen_path)):
+                prev = canvas.pen_path[i - 1]
+                curr = canvas.pen_path[i]
+                h_out = canvas.pen_handle_offsets[i - 1]
+                h_in = canvas.pen_handle_offsets[i]
+                if h_out is not None and h_in is not None:
+                    path.cubicTo(prev + h_out, curr - h_in, curr)
+                elif h_out is not None:
+                    path.cubicTo(prev + h_out, curr, curr)
+                elif h_in is not None:
+                    path.cubicTo(prev, curr - h_in, curr)
+                else:
+                    path.lineTo(curr)
+            p.fillPath(path, QBrush(canvas.tool_color))
+            p.setPen(QPen(canvas.tool_color, 1.5))
+            p.drawPath(path)
+            p.end()
+            canvas._refresh()
+        canvas.pen_path = []
+        canvas.pen_handle_offsets = []
+        canvas.update()
+
+    def cancel(self, canvas):
+        canvas.pen_path = []
+        canvas.pen_handle_offsets = []
+        canvas.update()
+
+
+class TextTool(Tool):
+    name = "Text"
+    shortcut = "T"
+
+    def press(self, canvas, pos, mods):
+        dialog = QDialog()
+        dialog.setWindowTitle("Text Tool")
+        layout = QVBoxLayout(dialog)
+
+        text_edit = QTextEdit()
+        text_edit.setPlainText("Type here")
+        layout.addWidget(text_edit)
+
+        font_layout = QHBoxLayout()
+        font_combo = QComboBox()
+        font_combo.addItems(QFontDatabase().families())
+        font_combo.setCurrentText("Arial")
+        font_layout.addWidget(QLabel("Font:"))
+        font_layout.addWidget(font_combo)
+
+        size_spin = QSpinBox()
+        size_spin.setRange(1, 999)
+        size_spin.setValue(32)
+        font_layout.addWidget(QLabel("Size:"))
+        font_layout.addWidget(size_spin)
+
+        bold_cb = QCheckBox("B")
+        italic_cb = QCheckBox("I")
+        underline_cb = QCheckBox("U")
+        font_layout.addWidget(bold_cb)
+        font_layout.addWidget(italic_cb)
+        font_layout.addWidget(underline_cb)
+        layout.addLayout(font_layout)
+
+        btn_layout = QHBoxLayout()
+        ok_btn = QPushButton("OK")
+        cancel_btn = QPushButton("Cancel")
+        btn_layout.addWidget(ok_btn)
+        btn_layout.addWidget(cancel_btn)
+        layout.addLayout(btn_layout)
+
+        confirmed = False
+
+        def on_ok():
+            nonlocal confirmed
+            confirmed = True
+            dialog.accept()
+
+        ok_btn.clicked.connect(on_ok)
+        cancel_btn.clicked.connect(dialog.reject)
+
+        dialog.exec_()
+
+        if confirmed:
+            layer = canvas.layer_stack.active
+            if not layer or layer.locked:
+                return
+            text = text_edit.toPlainText()
+            font = QFont(font_combo.currentText(), size_spin.value())
+            font.setBold(bold_cb.isChecked())
+            font.setItalic(italic_cb.isChecked())
+            font.setUnderline(underline_cb.isChecked())
+            p = QPainter(layer.image)
+            p.setRenderHint(QPainter.Antialiasing)
+            p.setFont(font)
+            p.setPen(canvas.tool_color)
+            p.drawText(pos, text)
+            p.end()
+            canvas._refresh()
+
+
+class HealingBrushTool(Tool):
+    name = "Healing Brush"
+    shortcut = "J"
+    healing_source = None
+
+    def press(self, canvas, pos, mods):
+        if mods & Qt.AltModifier:
+            self.healing_source = pos
+        elif self.healing_source is not None:
+            self._heal(canvas, self.healing_source, pos)
+
+    def move(self, canvas, last, pos, mods):
+        if self.healing_source is not None and not (mods & Qt.AltModifier):
+            dx = pos.x() - last.x()
+            dy = pos.y() - last.y()
+            src = self.healing_source
+            self._heal(canvas, src, pos)
+            self.healing_source = QPointF(src.x() + dx, src.y() + dy)
+
+    def _heal(self, canvas, src, dst):
+        layer = canvas.layer_stack.active
+        if not layer or layer.locked:
+            return
+        from .filters import to_array, from_array, heal_patch
+        img_arr = to_array(layer.image)
+        h, w = img_arr.shape[:2]
+        sx, sy = int(src.x()), int(src.y())
+        dx, dy = int(dst.x()), int(dst.y())
+        r = max(1, canvas.tool_size // 2 + 1)
+        x1 = max(0, sx - r)
+        x2 = min(w, sx + r + 1)
+        y1 = max(0, sy - r)
+        y2 = min(h, sy + r + 1)
+        tx1 = max(0, dx - r)
+        tx2 = min(w, dx + r + 1)
+        ty1 = max(0, dy - r)
+        ty2 = min(h, dy + r + 1)
+        size_x = min(x2 - x1, tx2 - tx1)
+        size_y = min(y2 - y1, ty2 - ty1)
+        if size_x < 2 or size_y < 2:
+            return
+        src_patch = img_arr[y1:y1 + size_y, x1:x1 + size_x].copy()
+        dst_patch = img_arr[ty1:ty1 + size_y, tx1:tx1 + size_x]
+        heal_patch(src_patch, dst_patch, r)
+        layer.image = from_array(img_arr)
+        canvas._refresh()
+
+
+class CropTool(Tool):
+    name = "Crop"
+    shortcut = "C"
+
+    def press(self, canvas, pos, mods):
+        canvas.crop_start = pos
+        canvas.crop_end = pos
+        canvas.crop_active = True
+        canvas.update()
+
+    def move(self, canvas, last, pos, mods):
+        if canvas.crop_active:
+            canvas.crop_end = pos
+            canvas.update()
+
+    def release(self, canvas, pos, mods):
+        if canvas.crop_active:
+            canvas.crop_end = pos
+            canvas.update()
+
+    def apply(self, canvas):
+        if not canvas.crop_active:
+            return
+        rect = QRectF(canvas.crop_start, canvas.crop_end).normalized()
+        if rect.width() < 2 or rect.height() < 2:
+            self.cancel(canvas)
+            return
+        x, y, w, h = int(rect.x()), int(rect.y()), int(rect.width()), int(rect.height())
+        canvas._save_state("Crop")
+        for layer in canvas.layer_stack.layers:
+            if isinstance(layer, canvas.layer_stack.layers[0].__class__):
+                layer.image = layer.image.copy(x, y, w, h)
+        canvas.crop_active = False
+        canvas.crop_start = None
+        canvas.crop_end = None
+        canvas._refresh()
+
+    def cancel(self, canvas):
+        canvas.crop_active = False
+        canvas.crop_start = None
+        canvas.crop_end = None
+        canvas.update()
+
+
 # Register all tools
 for _cls in [MoveTool, RectSelectTool, EllipseSelectTool, LassoTool,
              MagicWandTool, PencilTool, BrushTool, EraserTool,
              GradientTool, ShapeTool, CloneStampTool,
-             ColorPickerTool, FloodFillTool, HandTool, ZoomTool]:
+             ColorPickerTool, FloodFillTool, HandTool, ZoomTool,
+             PenTool, TextTool, HealingBrushTool, CropTool]:
     SHORTCUT_MAP[_cls.shortcut.lower()] = _cls
 
 TOOLS_BY_NAME = {}
 for _cls in [MoveTool, RectSelectTool, EllipseSelectTool, LassoTool,
              MagicWandTool, PencilTool, BrushTool, EraserTool,
              GradientTool, ShapeTool, CloneStampTool,
-             ColorPickerTool, FloodFillTool, HandTool, ZoomTool]:
+             ColorPickerTool, FloodFillTool, HandTool, ZoomTool,
+             PenTool, TextTool, HealingBrushTool, CropTool]:
     TOOLS_BY_NAME[_cls.name.lower()] = _cls
 
 TOOL_LIST = [
     ("Select", [MoveTool, RectSelectTool, EllipseSelectTool, LassoTool, MagicWandTool]),
-    ("Draw", [PencilTool, BrushTool, EraserTool, GradientTool, ShapeTool]),
-    ("Retouch", [CloneStampTool]),
+    ("Draw", [BrushTool, PencilTool, PenTool, EraserTool, GradientTool, ShapeTool]),
+    ("Text", [TextTool]),
+    ("Retouch", [CloneStampTool, HealingBrushTool]),
+    ("Crop", [CropTool]),
     ("Color", [ColorPickerTool, FloodFillTool]),
     ("View", [HandTool, ZoomTool]),
 ]
