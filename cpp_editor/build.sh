@@ -2,77 +2,66 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BUILD_DIR="$PROJECT_DIR/build"
-QT_LOCAL_DIR="$PROJECT_DIR/qt_local"
+BUILD_DIR="/tmp/reverseaffinite_build"
+QT_LOCAL_DIR="$PROJECT_DIR/qt_local/gcc_64"
 
 echo "=== reverseaffinite Build Script ==="
 
-# Check for Qt5 development libraries
-QT5_FOUND=false
-if pkg-config --exists Qt5Widgets 2>/dev/null; then
-    QT5_FOUND=true
-    echo "[OK] Qt5 development libraries found via pkg-config"
-elif [ -d "$QT_LOCAL_DIR" ] && [ -f "$QT_LOCAL_DIR/lib/cmake/Qt5/Qt5Config.cmake" ]; then
-    QT5_FOUND=true
-    echo "[OK] Local Qt5 installation found at $QT_LOCAL_DIR"
-else
-    echo "[WARNING] Qt5 development libraries not found."
+# Check for Qt5 headers
+if [ ! -d "$QT_LOCAL_DIR/include/QtCore" ]; then
     echo ""
-    echo "Options:"
-    echo "  1. Install system Qt5 dev packages:"
-    echo "     $ bash install_deps.sh"
+    echo "[INFO] Qt5 headers not found locally."
+    echo "Attempting to download Qt5 SDK using aqtinstall..."
     echo ""
-    echo "  2. Use a pre-built Qt5 static library (downloads ~100MB):"
-    echo "     Would you like to download a minimal Qt5 build to $QT_LOCAL_DIR? [y/N]"
-    read -r DOWNLOAD_QT
-    if [[ "$DOWNLOAD_QT" =~ ^[Yy]$ ]]; then
-        echo "Downloading pre-built Qt5... (this may take a while)"
-        mkdir -p "$QT_LOCAL_DIR"
-        # Download a minimal Qt5 static build (Linux x86_64)
-        QT_URL="https://github.com/Ventoy/opencode/releases/download/dummy/qt5-minimal-linux.tgz"
-        echo "Attempting download from $QT_URL"
-        if command -v wget &>/dev/null; then
-            wget -q -O "$QT_LOCAL_DIR/qt5.tgz" "$QT_URL" || true
-        elif command -v curl &>/dev/null; then
-            curl -sL -o "$QT_LOCAL_DIR/qt5.tgz" "$QT_URL" || true
-        fi
-        if [ -f "$QT_LOCAL_DIR/qt5.tgz" ] && [ -s "$QT_LOCAL_DIR/qt5.tgz" ]; then
-            echo "Extracting..."
-            tar xzf "$QT_LOCAL_DIR/qt5.tgz" -C "$QT_LOCAL_DIR"
-            rm "$QT_LOCAL_DIR/qt5.tgz"
-            echo "Qt5 static build downloaded to $QT_LOCAL_DIR"
-            QT5_FOUND=true
-        else
-            echo "Download failed or no pre-built package available."
-            echo "Please install Qt5 dev packages manually:"
-            echo "  sudo apt install qtbase5-dev qt5-qmake cmake g++"
-            exit 1
-        fi
-    else
-        echo "Build aborted. Please install Qt5 dev packages first."
-        echo "  sudo apt install qtbase5-dev qt5-qmake cmake g++"
-        exit 1
+
+    # Check if aqtinstall is available
+    AQT_CMD=""
+    if python3 -c "import aqt" 2>/dev/null; then
+        AQT_CMD="python3 -m aqt"
+    elif [ -f /tmp/qt_venv/bin/python ]; then
+        AQT_CMD="/tmp/qt_venv/bin/python -m aqt"
     fi
+
+    if [ -n "$AQT_CMD" ]; then
+        echo "Downloading Qt5 5.15.2..."
+        QT_TMP=$(mktemp -d)
+        $AQT_CMD install-qt linux desktop 5.15.2 gcc_64 -O "$QT_TMP" 2>&1
+        echo "Copying to $QT_LOCAL_DIR..."
+        rm -rf "$QT_LOCAL_DIR"
+        mkdir -p "$PROJECT_DIR/qt_local"
+        (cd "$QT_TMP/5.15.2" && tar cf - gcc_64 --dereference) | (cd "$PROJECT_DIR/qt_local" && tar xf - 2>/dev/null || true)
+        rm -rf "$QT_TMP"
+        # Patch cmake configs to use .so instead of .so.5.15.2
+        find "$QT_LOCAL_DIR/lib/cmake" -name "*.cmake" -exec sed -i 's/\(libQt5[^.]*\)\.so\.5\.15\.2/\1.so/g' {} \; 2>/dev/null || true
+    else
+        echo "[WARNING] aqtinstall not available. Install with: pip install aqtinstall"
+        echo "Qt5 headers will not be available - build may fail."
+    fi
+fi
+
+if [ -d "$QT_LOCAL_DIR/include/QtCore" ]; then
+    echo "[OK] Qt5 headers found at $QT_LOCAL_DIR"
+else
+    echo "[ERROR] Qt5 headers not found! Please run 'pip install aqtinstall' first, then this script."
+    exit 1
 fi
 
 # Configure with CMake
 echo ""
 echo "=== Configuring CMake ==="
+rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
-
-CMAKE_ARGS=()
-if [ -d "$QT_LOCAL_DIR" ] && [ -f "$QT_LOCAL_DIR/lib/cmake/Qt5/Qt5Config.cmake" ]; then
-    CMAKE_ARGS+=("-DCMAKE_PREFIX_PATH=$QT_LOCAL_DIR")
-fi
-
-cd "$BUILD_DIR"
-cmake "${CMAKE_ARGS[@]}" "$PROJECT_DIR"
+cmake -S "$PROJECT_DIR" -B "$BUILD_DIR" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 # Build
 echo ""
 echo "=== Building ==="
-cmake --build "$BUILD_DIR" -j"$(nproc)"
+cmake --build "$BUILD_DIR" -j"$(nproc)" 2>&1
 
 echo ""
 echo "=== Build Complete ==="
 echo "Binary at: $BUILD_DIR/reverseaffinite"
+echo ""
+echo "To run: $BUILD_DIR/reverseaffinite"

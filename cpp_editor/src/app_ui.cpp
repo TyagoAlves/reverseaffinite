@@ -3,6 +3,8 @@
 #include "panels.h"
 #include "filters.h"
 
+#include <functional>
+#include <initializer_list>
 #include <QMenuBar>
 #include <QToolBar>
 #include <QStatusBar>
@@ -50,7 +52,7 @@ public:
 
         auto applyInt = [this, apply](std::function<QImage(const QImage&, int)> func, const QString &title, int def, int min, int max) {
             bool ok;
-            int val = QInputDialog::getInt(this, title, "Value:", def, min, max, &ok);
+            int val = QInputDialog::getInt(this, title, "Value:", def, min, max, 1, &ok);
             if (ok) apply([func, val](const QImage &img) { return func(img, val); });
         };
 
@@ -187,7 +189,9 @@ MainWindow::MainWindow(QWidget *parent)
     createToolbar();
     createStatusBar();
 
-    connect(canvas_, &CanvasView::statusChanged, statusBar(), &QStatusBar::showMessage);
+    connect(canvas_, &CanvasView::statusChanged, this, [this](const QString &msg) {
+        statusBar()->showMessage(msg);
+    });
 }
 
 void MainWindow::createMenus()

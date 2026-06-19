@@ -133,7 +133,7 @@ class ColorPanel(QWidget):
                 c = QColor(f"#{text}")
                 if c.isValid():
                     self._sync(c)
-            except:
+            except Exception:
                 pass
 
     def _sync(self, c):
@@ -214,9 +214,9 @@ class LayerPanel(QWidget):
         self.list_widget.blockSignals(True)
         self.list_widget.clear()
         for i, layer in enumerate(canvas.layer_stack.layers):
-            vis = "👁" if layer.visible else "○"
-            lock = "🔒" if layer.locked else ""
-            prefix = "⚙ " if hasattr(layer, 'filter_func') and layer.filter_func else ""
+            vis = "[V]" if layer.visible else "[ ]"
+            lock = "[L]" if layer.locked else ""
+            prefix = "[F] " if hasattr(layer, 'filter_func') and layer.filter_func else ""
             item = QListWidgetItem(f"{prefix}{vis}{lock} {layer.name}")
             item.setData(Qt.UserRole, i)
             self.list_widget.addItem(item)

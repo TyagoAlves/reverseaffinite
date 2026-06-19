@@ -141,7 +141,7 @@ QImage edgeDetect(const QImage &img)
                 for (int dx = -1; dx <= 1; ++dx) {
                     int sx = clamp(x + dx, 0, result.width() - 1);
                     int sy = clamp(y + dy, 0, result.height() - 1);
-                    int gray = qGray(img.pixelColor(sx, sy));
+                    int gray = qGray(img.pixelColor(sx, sy).rgb());
                     gx += gray * kx[dy + 1][dx + 1];
                     gy += gray * ky[dy + 1][dx + 1];
                 }

@@ -64,9 +64,10 @@ protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
 
-private:
+public:
     void refresh();
 
+private:
     QGraphicsScene *scene_;
     QGraphicsPixmapItem *pixmapItem_;
     double zoomLevel_ = 1.0;

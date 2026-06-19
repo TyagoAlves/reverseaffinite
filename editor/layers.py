@@ -1,6 +1,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QColor, QPainter
 import numpy as np
+import copy
 
 
 def _blend_normal(b, l):
@@ -85,8 +86,10 @@ def _qimage_to_float_array(img):
 
 class Layer:
     def __init__(self, width, height, name="Background", fill=None):
+        w = max(0, int(width))
+        h = max(0, int(height))
         self.name = name
-        self.image = QImage(width, height, QImage.Format_ARGB32)
+        self.image = QImage(w, h, QImage.Format_ARGB32_Premultiplied)
         self.image.fill(fill if fill is not None else (Qt.white if name == "Background" else Qt.transparent))
         self.visible = True
         self.locked = False
@@ -95,8 +98,14 @@ class Layer:
         self.parent_group = None
 
     def copy(self):
-        import copy
-        return copy.deepcopy(self)
+        l = Layer(self.image.width(), self.image.height(), self.name + " (copy)")
+        l.image = self.image.copy()
+        l.visible = self.visible
+        l.locked = self.locked
+        l.opacity = self.opacity
+        l.blend_mode = self.blend_mode
+        l.parent_group = self.parent_group
+        return l
 
 
 class AdjustmentLayer(Layer):
@@ -109,6 +118,11 @@ class AdjustmentLayer(Layer):
     def copy(self):
         adj = AdjustmentLayer(self.image.width(), self.image.height(),
                               self.name + " (copy)", self.filter_func, self.params.copy())
+        adj.image = self.image.copy()
+        adj.visible = self.visible
+        adj.locked = self.locked
+        adj.opacity = self.opacity
+        adj.blend_mode = self.blend_mode
         return adj
 
 
@@ -137,6 +151,8 @@ class LayerStack:
         return None
 
     def add_layer(self, name=None):
+        if not self.layers:
+            return None
         w, h = self.layers[0].image.width(), self.layers[0].image.height()
         idx = len(self.layers)
         layer = Layer(w, h, name or f"Layer {idx}", Qt.transparent)
@@ -145,6 +161,8 @@ class LayerStack:
         return layer
 
     def add_background(self, color=QColor(Qt.white)):
+        if not self.layers:
+            return
         w, h = self.layers[0].image.width(), self.layers[0].image.height()
         idx = len(self.layers)
         layer = Layer(w, h, f"Background", color)
@@ -201,11 +219,16 @@ class LayerStack:
     def composite(self):
         if not self.layers:
             return QImage()
-        w = self.layers[0].image.width()
-        h = self.layers[0].image.height()
+        visible = [l for l in self.layers if l.visible]
+        if not visible:
+            w = self.layers[0].image.width()
+            h = self.layers[0].image.height()
+            return QImage(w, h, QImage.Format_ARGB32_Premultiplied)
+        w = visible[0].image.width()
+        h = visible[0].image.height()
         result = np.zeros((h, w, 4), dtype=np.float32)
-        for layer in self.layers:
-            if not layer.visible:
+        for layer in visible:
+            if isinstance(layer, GroupLayer):
                 continue
             if isinstance(layer, AdjustmentLayer):
                 if layer.filter_func:
@@ -214,11 +237,12 @@ class LayerStack:
                     result = _qimage_to_float_array(result_qimg)
                 continue
             img = layer.image
-            if img.format() != QImage.Format_RGBA8888:
-                img = img.convertToFormat(QImage.Format_RGBA8888)
+            iw, ih = img.width(), img.height()
+            if iw != w or ih != h:
+                img = img.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
             ptr = img.constBits()
             ptr.setsize(img.sizeInBytes())
-            arr = np.frombuffer(ptr, dtype=np.uint8).copy().reshape(h, w, 4)
+            arr = np.frombuffer(ptr, dtype=np.uint8).copy().reshape(ih, iw, 4)
             layer_arr = arr.astype(np.float32) / 255.0
             blend_func = BLEND_FUNCS.get(layer.blend_mode, _blend_normal)
             blend_rgb = blend_func(result[:, :, :3], layer_arr[:, :, :3])

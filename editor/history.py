@@ -1,6 +1,7 @@
 from collections import deque
 import copy
 from PyQt5.QtCore import QObject, pyqtSignal
+from .layers import Layer
 
 
 class HistoryEntry:
@@ -54,7 +55,6 @@ class HistoryManager(QObject):
 
     def _restore(self, layer_stack):
         entry = self.stack[self.index]
-        from .layers import Layer
         layer_stack.layers.clear()
         for name, img, vis, locked, opacity, blend in entry.snapshot:
             l = Layer(img.width(), img.height(), name)

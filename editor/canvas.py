@@ -1,8 +1,8 @@
-from PyQt5.QtCore import Qt, QPointF, QRectF, pyqtSignal, QRect, QTimer
+from PyQt5.QtCore import Qt, QPointF, QRectF, pyqtSignal, QRect, QTimer, QUrl
 from PyQt5.QtGui import (
     QPainter, QPixmap, QPen, QColor, QImage, QBrush,
     QTransform, QPolygonF, QFont, QFontMetrics, QBitmap, QRegion,
-    QPainterPath,
+    QPainterPath, QCursor,
 )
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
 import math
@@ -20,6 +20,7 @@ class CanvasView(QGraphicsView):
     status_changed = pyqtSignal(str)
     zoom_changed = pyqtSignal(float)
     history_changed = pyqtSignal()
+    tool_changed = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -37,6 +38,7 @@ class CanvasView(QGraphicsView):
         self.pan_offset_x = 0
         self.pan_offset_y = 0
         self.tool = PencilTool()
+        self.setCursor(getattr(self.tool, 'cursor', QCursor(Qt.ArrowCursor)))
         self.tool_size = 3
         self.tool_color = QColor(0, 0, 0)
         self.tool_opacity = 1.0
@@ -80,7 +82,9 @@ class CanvasView(QGraphicsView):
         self.setMouseTracking(True)
         self.setDragMode(QGraphicsView.NoDrag)
         self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
+        self.setAcceptDrops(True)
 
+        self.tool_changed.emit(self.tool.name)
         self._refresh()
 
     def _refresh(self):
@@ -103,34 +107,56 @@ class CanvasView(QGraphicsView):
         self.zoom_fit()
 
     def open_image(self, path):
-        img = QImage(path)
-        if img.isNull():
+        if not path:
             return False
-        if img.format() != QImage.Format_ARGB32:
-            img = img.convertToFormat(QImage.Format_ARGB32)
-        w, h = img.width(), img.height()
-        self.layer_stack = LayerStack(w, h)
-        self.layer_stack.layers[0].image = img.copy()
-        self.history.clear()
-        self.history.push(f"Open {path}", self.layer_stack.layers, self.layer_stack.active_index)
-        self._refresh()
-        self.zoom_fit()
-        return True
+        try:
+            img = QImage(path)
+            if img.isNull():
+                return False
+            if img.format() != QImage.Format_ARGB32:
+                img = img.convertToFormat(QImage.Format_ARGB32)
+            w, h = img.width(), img.height()
+            self.layer_stack = LayerStack(w, h)
+            self.layer_stack.layers[0].image = img.copy()
+            self.history.clear()
+            self.history.push(f"Open {path}", self.layer_stack.layers, self.layer_stack.active_index)
+            self._refresh()
+            self.zoom_fit()
+            return True
+        except Exception:
+            return False
 
     def save_image(self, path):
-        return self.layer_stack.composite().save(path)
+        if not path:
+            return False
+        try:
+            return self.layer_stack.composite().save(path)
+        except Exception:
+            return False
 
     def export_png(self, path):
-        return self.layer_stack.composite().save(path, "PNG")
+        if not path:
+            return False
+        try:
+            return self.layer_stack.composite().save(path, "PNG")
+        except Exception:
+            return False
 
     def export_jpg(self, path, quality=95):
-        return self.layer_stack.composite().save(path, "JPEG", quality)
+        if not path:
+            return False
+        try:
+            return self.layer_stack.composite().save(path, "JPEG", quality)
+        except Exception:
+            return False
 
     def set_tool(self, tool_name):
         from .tools import TOOLS_BY_NAME
         cls = TOOLS_BY_NAME.get(tool_name.lower())
         if cls:
             self.tool = cls()
+            self.setCursor(getattr(self.tool, 'cursor', QCursor(Qt.ArrowCursor)))
+            self.tool_changed.emit(self.tool.name)
 
     def set_tool_size(self, size):
         self.tool_size = max(1, size)
@@ -611,6 +637,30 @@ class CanvasView(QGraphicsView):
             self.status_changed.emit(f"Zoom: {self.zoom_level * 100:.0f}%")
         else:
             super().wheelEvent(event)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                path = url.toLocalFile()
+                if path and path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff', '.tif', '.webp')):
+                    event.acceptProposedAction()
+                    return
+        event.ignore()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            path = url.toLocalFile()
+            if path and self.open_image(path):
+                main = self.window()
+                if hasattr(main, 'current_path'):
+                    main.current_path = path
+                    main.setWindowTitle(f"reverseaffinite Photo - [{path}]")
+                    main.statusBar().showMessage(f"Opened: {path}")
+                if hasattr(main, 'layer_panel'):
+                    main.layer_panel.refresh()
+                event.acceptProposedAction()
+                return
+        event.ignore()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.RightButton:

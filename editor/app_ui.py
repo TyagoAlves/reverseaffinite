@@ -1,5 +1,6 @@
+import os
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QColor, QKeySequence, QFont, QIcon, QFontDatabase
+from PyQt5.QtGui import QColor, QKeySequence, QFont, QIcon, QFontDatabase, QPixmap
 from PyQt5.QtWidgets import (
     QMainWindow, QAction, QFileDialog, QColorDialog,
     QToolBar, QToolButton, QSpinBox, QLabel, QComboBox,
@@ -7,7 +8,7 @@ from PyQt5.QtWidgets import (
     QInputDialog, QMenu, QStatusBar, QDockWidget,
     QButtonGroup, QFrame, QScroller, QScrollArea,
     QSplitter, QDialog, QGridLayout, QCheckBox, QGroupBox,
-    QApplication,
+    QApplication, QMessageBox,
 )
 
 from .canvas import CanvasView
@@ -64,6 +65,11 @@ class ToolPalette(QWidget):
         # Default: first tool selected
         if self.button_group.buttons():
             self.button_group.buttons()[0].setChecked(True)
+
+    def select_tool_by_name(self, tool_name):
+        btn = self.tool_buttons.get(tool_name)
+        if btn:
+            btn.setChecked(True)
 
     def _select_tool(self, tool_cls):
         canvas = self.get_canvas()
@@ -331,9 +337,13 @@ class MainWindow(QMainWindow):
         self.canvas.status_changed.connect(self.statusBar().showMessage)
         self.canvas.color_picked.connect(self._sync_color_btn)
         self.canvas.history_changed.connect(self.history_panel.refresh)
+        self.canvas.zoom_changed.connect(self._update_zoom_label)
+        self.canvas.tool_changed.connect(self._update_tool_label)
+        self.canvas.tool_changed.connect(self.tool_palette.select_tool_by_name)
         self.canvas.layer_stack.layers = self.canvas.layer_stack.layers  # force ref
 
         self.current_path = None
+        self._update_dim_label()
 
     def _make_toolbar_wrapper(self, widget):
         tb = QToolBar("Tools")
@@ -352,6 +362,35 @@ class MainWindow(QMainWindow):
             self.canvas.set_foreground_color(color)
             self._sync_color_btn(color)
             self.color_panel.set_color(color)
+
+    def _show_about(self):
+        icon_path = os.path.join(os.path.dirname(__file__), "..", "assets", "icon.svg")
+        msg = QMessageBox(self)
+        msg.setWindowTitle("About reverseaffinite")
+        msg.setIconPixmap(QIcon(icon_path).pixmap(64, 64) if os.path.exists(icon_path) else QPixmap())
+        msg.setText(
+            "<h2>reverseaffinite</h2>"
+            "<p><b>Version 0.1.0</b></p>"
+            "<p>A professional photo editor built with PyQt5.</p>"
+            "<hr>"
+            "<p><i>Inspired by Affinity Photo, Adobe Photoshop, and DaVinci Resolve.</i></p>"
+            "<hr>"
+            "<p style='font-size:11px; color:#888;'>"
+            "Built with Python, PyQt5, NumPy<br>"
+            "© 2026 reverseaffinite"
+            "</p>"
+        )
+        msg.exec_()
+
+    def _update_zoom_label(self, zoom):
+        self.zoom_label.setText(f"{zoom * 100:.0f}%")
+
+    def _update_dim_label(self):
+        img = self.canvas.layer_stack.composite()
+        self.dim_label.setText(f"{img.width()}x{img.height()}")
+
+    def _update_tool_label(self):
+        self.tool_label.setText(f"Tool: {self.canvas.tool.name}")
 
     def _update_coords(self, x, y):
         self.coord_label.setText(f"X: {int(x):4d}  Y: {int(y):4d}")
@@ -430,12 +469,24 @@ class MainWindow(QMainWindow):
         view_m.addSeparator()
         view_m.addAction("&Reset View", self.canvas.zoom_fit)
 
+        help_m = mb.addMenu("&Help")
+        help_m.addAction("&About reverseaffinite", self._show_about)
+
     def create_statusbar(self):
         sb = self.statusBar()
         sb.showMessage("Ready")
+        self.tool_label = QLabel("Tool: Pencil")
+        self.tool_label.setFixedWidth(120)
+        sb.addPermanentWidget(self.tool_label)
+        self.zoom_label = QLabel("100%")
+        self.zoom_label.setFixedWidth(60)
+        sb.addPermanentWidget(self.zoom_label)
+        self.dim_label = QLabel("800x600")
+        self.dim_label.setFixedWidth(80)
+        sb.addPermanentWidget(self.dim_label)
         self.coord_label = QLabel("X:    0  Y:    0")
-        self.info_label = QLabel("")
         sb.addPermanentWidget(self.coord_label)
+        self.info_label = QLabel("")
         sb.addPermanentWidget(self.info_label)
 
     def _new_file(self):
@@ -448,6 +499,7 @@ class MainWindow(QMainWindow):
         self.canvas.new_image(w, h)
         self.current_path = None
         self.setWindowTitle(f"reverseaffinite Photo - [Untitled {w}x{h}]")
+        self._update_dim_label()
         self.layer_panel.refresh()
 
     def _open_file(self):
@@ -459,6 +511,7 @@ class MainWindow(QMainWindow):
             self.current_path = path
             self.setWindowTitle(f"reverseaffinite Photo - [{path}]")
             self.statusBar().showMessage(f"Opened: {path}")
+            self._update_dim_label()
             self.layer_panel.refresh()
 
     def _save_file(self):
@@ -477,6 +530,7 @@ class MainWindow(QMainWindow):
             self.canvas.save_image(path)
             self.current_path = path
             self.setWindowTitle(f"reverseaffinite Photo - [{path}]")
+            self._update_dim_label()
             self.statusBar().showMessage(f"Saved: {path}")
 
     def _export_png(self):
@@ -531,6 +585,7 @@ class MainWindow(QMainWindow):
         for layer in self.canvas.layer_stack.layers:
             layer.image = layer.image.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
         self.canvas._refresh()
+        self._update_dim_label()
 
     def _canvas_size(self):
         img = self.canvas.layer_stack.composite()

@@ -7,6 +7,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QIcon
 from editor.app_ui import MainWindow
+from editor.resources import apply_dark_theme
+from editor.splash import show_splash_then_main
 
 
 def main():
@@ -19,9 +21,12 @@ def main():
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 
+    apply_dark_theme(app)
+
     window = MainWindow()
     window.setWindowTitle("reverseaffinite Photo - [Untitled]")
-    window.show()
+
+    show_splash_then_main(app, window, 2000)
 
     sys.exit(app.exec_())
 

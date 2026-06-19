@@ -4,12 +4,16 @@ from PyQt5.QtGui import QImage, QColor
 
 def to_array(img):
     w, h = img.width(), img.height()
-    ptr = img.bits()
+    if w < 1 or h < 1:
+        return np.zeros((0, 0, 4), dtype=np.uint8)
+    ptr = img.constBits()
     ptr.setsize(h * w * 4)
     return np.frombuffer(ptr, dtype=np.uint8).reshape((h, w, 4)).copy()
 
 
 def from_array(arr):
+    if arr.size == 0:
+        return QImage()
     h, w = arr.shape[:2]
     return QImage(arr.data, w, h, QImage.Format_ARGB32).copy()
 
@@ -95,7 +99,10 @@ def curves(img, points):
 
 def gaussian_blur(img, radius=3):
     k = radius * 2 + 1
-    kernel = np.ones((k, k), dtype=np.float32) / (k * k)
+    ax = np.linspace(-(k // 2), k // 2, k)
+    g = np.exp(-0.5 * (ax / max(1, radius * 0.5)) ** 2)
+    kernel = np.outer(g, g)
+    kernel /= kernel.sum()
     a = to_array(img).astype(np.float32)
     for c in range(4):
         a[..., c] = _convolve(a[..., c], kernel)
@@ -215,7 +222,10 @@ def heal_patch(src_arr, dst_arr, radius):
 def noise_reduce(img, strength=3):
     a = to_array(img).astype(np.float32)
     k = strength * 2 + 1
-    kernel = np.ones((k, k), dtype=np.float32) / (k * k)
+    ax = np.linspace(-(k // 2), k // 2, k)
+    g = np.exp(-0.5 * (ax / max(1, strength * 0.5)) ** 2)
+    kernel = np.outer(g, g)
+    kernel /= kernel.sum()
     median = a.copy()
     for c in range(4):
         median[..., c] = _convolve(a[..., c], kernel)
