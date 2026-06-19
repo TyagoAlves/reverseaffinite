@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.o
+*.obj
+*.exe
+build/
+cmake-build-*/
+*.user
+*.suo
+venv/
+.venv/
