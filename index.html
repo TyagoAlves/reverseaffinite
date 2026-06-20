@@ -44,7 +44,7 @@
     .shortcut-key { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.08); }
 
     .code-block { background: rgba(6, 10, 20, 0.8); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.8; overflow-x: auto; }
-    .code-block .prompt { color: #22d3ee; user-select: none; -webkit-user-select: none; }
+    .code-block .cmd::before { content: "$ "; color: #22d3ee; user-select: none; -webkit-user-select: none; }
     .code-block .cmd { color: #e2e8f0; }
     .code-block .output { color: #64748b; }
 
@@ -304,10 +304,10 @@
             <h3 class="text-lg font-bold">Python (PyQt5)</h3>
           </div>
           <div class="code-block text-sm">
-            <span class="prompt">$</span> <span class="cmd">git clone https://github.com/TyagoAlves/reverseaffinite.git</span><br>
-            <span class="prompt">$</span> <span class="cmd">cd reverseaffinite</span><br>
-            <span class="prompt">$</span> <span class="cmd">pip install PyQt5 numpy</span><br>
-            <span class="prompt">$</span> <span class="cmd">python3 main.py</span><br>
+            <span class="cmd">git clone https://github.com/TyagoAlves/reverseaffinite.git</span><br>
+            <span class="cmd">cd reverseaffinite</span><br>
+            <span class="cmd">pip install PyQt5 numpy</span><br>
+            <span class="cmd">python3 main.py</span><br>
             <span class="output">&#10003; reverseaffinite Photo — pronto!</span>
           </div>
         </div>
@@ -318,13 +318,13 @@
             <h3 class="text-lg font-bold">C++ Engine (Qt5/OpenGL)</h3>
           </div>
           <div class="code-block text-sm">
-            <span class="prompt">$</span> <span class="cmd">pip install aqtinstall</span><br>
-            <span class="prompt">$</span> <span class="cmd">cd reverseaffinite/cpp_editor</span><br>
-            <span class="prompt">$</span> <span class="cmd">chmod +x build.sh</span><br>
-            <span class="prompt">$</span> <span class="cmd">./build.sh</span><br>
+            <span class="cmd">pip install aqtinstall</span><br>
+            <span class="cmd">cd reverseaffinite/cpp_editor</span><br>
+            <span class="cmd">chmod +x build.sh</span><br>
+            <span class="cmd">./build.sh</span><br>
             <span class="output">&#10003; C++ engine compiled — ~104 KB binary</span>
           </div>
-          <p class="text-gray-600 text-xs mt-4">Requer Python + Qt5 (download automático) + CMake + g++.</p>
+          <p class="text-gray-600 text-xs mt-4">Requer Python + CMake + g++. Qt5 instalado via apt ou aqtinstall.</p>
         </div>
       </div>
     </div>
@@ -377,7 +377,7 @@
             <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> 15+ ferramentas com atalhos profissionais</div>
             <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> Blend modes via NumPy (SIMD-ready)</div>
             <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> Histórico de 100 níveis com snapshots</div>
-            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> 136 testes automatizados</div>
+            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> 150+ testes automatizados</div>
           </div>
         </div>
 
