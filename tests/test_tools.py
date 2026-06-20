@@ -6,6 +6,7 @@ from editor.tools import (
     GradientTool, ShapeTool, CloneStampTool,
     ColorPickerTool, FloodFillTool, HandTool, ZoomTool,
     PenTool, TextTool, HealingBrushTool, CropTool,
+    DodgeTool, BurnTool, SpongeTool,
     Tool,
 )
 
@@ -56,6 +57,7 @@ class TestToolRegistration(unittest.TestCase):
             GradientTool, ShapeTool, CloneStampTool,
             ColorPickerTool, FloodFillTool, HandTool, ZoomTool,
             PenTool, TextTool, HealingBrushTool, CropTool,
+            DodgeTool, BurnTool, SpongeTool,
         }
         self.assertEqual(all_listed, all_classes)
 
@@ -66,6 +68,7 @@ class TestToolRegistration(unittest.TestCase):
             GradientTool, ShapeTool, CloneStampTool,
             ColorPickerTool, FloodFillTool, HandTool, ZoomTool,
             PenTool, TextTool, HealingBrushTool, CropTool,
+            DodgeTool, BurnTool, SpongeTool,
         ]
         for cls in all_classes:
             with self.subTest(cls.__name__):
@@ -81,6 +84,7 @@ class TestToolRegistration(unittest.TestCase):
             GradientTool, ShapeTool, CloneStampTool,
             ColorPickerTool, FloodFillTool, HandTool, ZoomTool,
             PenTool, TextTool, HealingBrushTool, CropTool,
+            DodgeTool, BurnTool, SpongeTool,
         ]
         for cls in all_classes:
             s = cls.shortcut.lower()
