@@ -21,8 +21,12 @@ pyinstaller \
     --add-data "$(python3 -c 'import PIL; print(PIL.__path__[0])'):PIL" \
     --add-data "$(python3 -c 'import psd_tools; print(psd_tools.__path__[0])'):psd_tools" \
     --collect-all editor \
+    --collect-all reverseaffinity \
     --hidden-import editor.file_formats.psd_import \
     --hidden-import psd_tools \
+    --hidden-import reverseaffinity.home \
+    --hidden-import reverseaffinity.video \
+    --hidden-import reverseaffinity.effects \
     main.py
 
 echo "[3/5] Creating AppDir..."
@@ -41,12 +45,12 @@ chmod +x "$APPDIR/AppRun"
 
 cat > "$APPDIR/reverseaffinity.desktop" << 'DESK'
 [Desktop Entry]
-Name=reverseaffinity Photo
-Comment=Photo editor inspired by Photoshop
+Name=reverseaffinity
+Comment=Photo/Video/Effects editor
 Exec=reverseaffinity
 Icon=reverseaffinity
 Type=Application
-Categories=Graphics;Photography;2DGraphics;RasterGraphics;
+Categories=Graphics;Photography;Video;2DGraphics;RasterGraphics;
 Terminal=false
 MimeType=image/png;image/jpeg;image/tiff;image/webp;image/bmp;image/x-psd;
 DESK
