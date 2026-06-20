@@ -129,6 +129,13 @@ class GroupLayer:
         self.children = []
         self.expanded = True
 
+    def add_child(self, child):
+        self.children.append(child)
+
+    def remove_child(self, child):
+        if child in self.children:
+            self.children.remove(child)
+
 
 class LayerStack:
     def __init__(self, width=800, height=600):

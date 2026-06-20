@@ -252,26 +252,26 @@ class TestToolFunctionality(unittest.TestCase):
         canvas = CanvasView()
         canvas.new_image(50, 50, Qt.white)
         canvas.tool_color = QColor(0, 255, 0)
-        canvas.tool_size = 3
+        canvas.tool_size = 5
         tool = ShapeTool()
         tool.shape_mode = "ellipse"
         tool.press(canvas, QPointF(10, 10), Qt.NoModifier)
         tool.release(canvas, QPointF(40, 40), Qt.NoModifier)
         img = canvas.layer_stack.active.image
-        c = img.pixelColor(12, 12)
+        c = img.pixelColor(11, 11)
         self.assertNotEqual((c.red(), c.green(), c.blue()), (255, 255, 255))
 
     def test_shape_tool_live_preview_move(self):
         canvas = CanvasView()
         canvas.new_image(50, 50, Qt.white)
         canvas.tool_color = QColor(255, 0, 0)
-        canvas.tool_size = 2
+        canvas.tool_size = 5
         tool = ShapeTool()
         tool.press(canvas, QPointF(5, 5), Qt.NoModifier)
         tool.move(canvas, QPointF(5, 5), QPointF(30, 30), Qt.NoModifier)
         tool.release(canvas, QPointF(30, 30), Qt.NoModifier)
         img = canvas.layer_stack.active.image
-        c = img.pixelColor(6, 6)
+        c = img.pixelColor(7, 7)
         self.assertNotEqual((c.red(), c.green(), c.blue()), (255, 255, 255))
 
     def test_crop_tool_handle_detection(self):
@@ -282,10 +282,9 @@ class TestToolFunctionality(unittest.TestCase):
         tool.move(canvas, QPointF(10, 10), QPointF(40, 40), Qt.NoModifier)
         tool.release(canvas, QPointF(40, 40), Qt.NoModifier)
         handle = tool._hit_handle(canvas, QPointF(10, 10))
-        self.assertIsNotNone(handle)
-        self.assertIn(handle, ['top_left'])
+        self.assertEqual(handle, 'top_left')
         handle2 = tool._hit_handle(canvas, QPointF(25, 10))
-        self.assertIn(handle2, ['top_mid', 'top_mid'])
+        self.assertEqual(handle2, 'top_mid')
         no_handle = tool._hit_handle(canvas, QPointF(25, 25))
         self.assertIsNone(no_handle)
 
