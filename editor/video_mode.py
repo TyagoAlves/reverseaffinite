@@ -161,7 +161,7 @@ class VideoMode(QWidget):
         return f"{h:02d}:{m:02d}:{s:02d}:{f:02d}"
 
     def import_video(self):
-        filepath, _ = QFileDialog.getOpenFileName(
+        filepath, _filter = QFileDialog.getOpenFileName(
             self, _("Import Video"), "",
             _("Video Files (*.mp4 *.avi *.mov *.mkv *.webm *.flv *.wmv);;All Files (*)")
         )

@@ -86,7 +86,7 @@ class TimeRuler(QWidget):
             mins = sec // 60
             rem_sec = sec % 60
             label = f"{mins:02d}:{rem_sec:02d}"
-            p.drawText(x + 3, 0, self._zoom - 6, self.height(),
+            p.drawText(x + 3, 0, int(self._zoom - 6), self.height(),
                        Qt.AlignLeft | Qt.AlignVCenter, label)
             p.setPen(QColor("#555"))
 

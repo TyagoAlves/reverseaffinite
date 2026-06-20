@@ -89,10 +89,10 @@ class TimecodeDisplay(QWidget):
         if seconds < 0:
             seconds = 0
         total_frames = int(round(seconds * fps))
-        h = total_frames // (3600 * fps)
-        m = (total_frames // (60 * fps)) % 60
-        s = (total_frames // fps) % 60
-        f = total_frames % fps
+        h = int(total_frames // (3600 * fps))
+        m = int((total_frames // (60 * fps)) % 60)
+        s = int((total_frames // fps) % 60)
+        f = int(total_frames % fps)
         return f"{h:02d}:{m:02d}:{s:02d}:{f:02d}"
 
     def set_time(self, seconds):

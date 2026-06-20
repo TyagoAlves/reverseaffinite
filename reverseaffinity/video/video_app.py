@@ -63,7 +63,7 @@ class SourceMonitor(QWidget):
         self._play_timer.timeout.connect(self._advance_frame)
 
     def import_media(self):
-        path, _ = QFileDialog.getOpenFileName(
+        path, _filter = QFileDialog.getOpenFileName(
             self, _("Import Media"),
             "", _("Media Files (*.mp4 *.avi *.mov *.mkv *.webm *.png *.jpg *.jpeg *.gif);;All Files (*)")
         )
@@ -210,7 +210,7 @@ class ProjectPanel(QWidget):
         self._add_to_timeline_action.setEnabled(len(selected) > 0)
 
     def import_media(self):
-        paths, _ = QFileDialog.getOpenFileNames(
+        paths, _filter = QFileDialog.getOpenFileNames(
             self, _("Import Media"),
             "", _("Media Files (*.mp4 *.avi *.mov *.mkv *.webm *.png *.jpg *.jpeg *.gif);;All Files (*)")
         )
@@ -432,12 +432,12 @@ class VideoMainWindow(QMainWindow):
         self.statusBar().showMessage(_("New project created"))
 
     def open_project(self):
-        path, _ = QFileDialog.getOpenFileName(self, _("Open Project"), "", _("Project Files (*.revideo *.json);;All Files (*)"))
+        path, _filter = QFileDialog.getOpenFileName(self, _("Open Project"), "", _("Project Files (*.revideo *.json);;All Files (*)"))
         if path:
             self.statusBar().showMessage(_("Project loaded: ") + os.path.basename(path))
 
     def save_project(self):
-        path, _ = QFileDialog.getSaveFileName(self, _("Save Project"), "", _("Project Files (*.revideo);;All Files (*)"))
+        path, _filter = QFileDialog.getSaveFileName(self, _("Save Project"), "", _("Project Files (*.revideo);;All Files (*)"))
         if path:
             self.statusBar().showMessage(_("Project saved"))
 
@@ -445,7 +445,7 @@ class VideoMainWindow(QMainWindow):
         self.save_project()
 
     def export_media(self):
-        path, _ = QFileDialog.getSaveFileName(
+        path, _filter = QFileDialog.getSaveFileName(
             self, _("Export Media"), "",
             _("Video Files (*.mp4);;Image Sequence (*.png *.jpg);;All Files (*)")
         )

@@ -542,7 +542,7 @@ class ExportDialog(QDialog):
             name = info.get('name', ext.upper())
         except ImportError:
             name = ext.upper()
-        path, _ = QFileDialog.getSaveFileName(self, _("Export As"), "", f"{_(name)} (*{ext})")
+        path, _filter = QFileDialog.getSaveFileName(self, _("Export As"), "", f"{_(name)} (*{ext})")
         if path:
             self.path_edit.setText(path)
             self._update_size_estimate()
@@ -1029,7 +1029,7 @@ class MainWindow(QMainWindow):
 
     def _open_file(self):
         from .file_io import get_open_filter
-        path, _ = QFileDialog.getOpenFileName(
+        path, _filter = QFileDialog.getOpenFileName(
             self, _("Open Image"), "",
             get_open_filter()
         )
@@ -1043,7 +1043,7 @@ class MainWindow(QMainWindow):
             self.nav_panel.refresh()
 
     def _place_image(self):
-        path, _ = QFileDialog.getOpenFileName(
+        path, _filter = QFileDialog.getOpenFileName(
             self, _("Place Image"), "",
             _("Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp);;All Files (*)")
         )
@@ -1063,7 +1063,7 @@ class MainWindow(QMainWindow):
 
     def _save_as_file(self):
         from .file_io import get_save_filter
-        path, _ = QFileDialog.getSaveFileName(
+        path, _filter = QFileDialog.getSaveFileName(
             self, _("Save Image"), "",
             get_save_filter()
         )
@@ -1076,22 +1076,22 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(_("Saved: ") + path)
 
     def _export_png(self):
-        path, _ = QFileDialog.getSaveFileName(self, _("Export as PNG"), "", _("PNG (*.png)"))
+        path, _filter = QFileDialog.getSaveFileName(self, _("Export as PNG"), "", _("PNG (*.png)"))
         if path:
             self.canvas.save_image(path, {'compression': 6})
 
     def _export_jpg(self):
-        path, _ = QFileDialog.getSaveFileName(self, _("Export as JPEG"), "", _("JPEG (*.jpg *.jpeg)"))
+        path, _filter = QFileDialog.getSaveFileName(self, _("Export as JPEG"), "", _("JPEG (*.jpg *.jpeg)"))
         if path:
             self.canvas.save_image(path, {'quality': 95})
 
     def _export_webp(self):
-        path, _ = QFileDialog.getSaveFileName(self, _("Export as WebP"), "", _("WebP (*.webp)"))
+        path, _filter = QFileDialog.getSaveFileName(self, _("Export as WebP"), "", _("WebP (*.webp)"))
         if path:
             self.canvas.save_image(path, {'quality': 80})
 
     def _export_psd(self):
-        path, _ = QFileDialog.getSaveFileName(self, _("Export as PSD"), "", _("Photoshop (*.psd)"))
+        path, _filter = QFileDialog.getSaveFileName(self, _("Export as PSD"), "", _("Photoshop (*.psd)"))
         if path:
             self.canvas.save_image(path)
 
@@ -1144,7 +1144,7 @@ class MainWindow(QMainWindow):
 
     def _batch_export_layers(self):
         from .batch import batch_export_layers
-        path, _ = QFileDialog.getSaveFileName(
+        path, _filter = QFileDialog.getSaveFileName(
             self, _("Batch Export Layers"), "",
             _("PNG (*.png);;JPEG (*.jpg);;WebP (*.webp);;TIFF (*.tiff);;BMP (*.bmp)")
         )
