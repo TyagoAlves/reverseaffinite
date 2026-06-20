@@ -429,8 +429,9 @@ class CanvasView(QGraphicsView):
             return
         from .filters import to_array, from_array
         rect = QRect(x0, y0, x1 - x0, y1 - y0)
-        arr = to_array(layer.image.copy(rect))
+        arr = to_array(layer.image.copy(rect)).astype(np.float32) / 255.0
         result = op_func(arr, strength)
+        result = np.clip(result * 255.0, 0, 255).astype(np.uint8)
         new_img = from_array(result)
         p = QPainter(layer.image)
         p.setClipRect(rect)
@@ -441,17 +442,18 @@ class CanvasView(QGraphicsView):
         self._refresh()
 
     def _dodge_func(self, arr, exposure):
-        arr = arr.astype(np.float32)
-        result = np.clip(arr + (1.0 - arr) * exposure * 0.5, 0, 1)
+        result = np.clip(arr[..., :3] + (1.0 - arr[..., :3]) * exposure * 0.5, 0, 1)
+        if arr.shape[2] == 4:
+            result = np.concatenate([result, arr[..., 3:4]], axis=2)
         return result
 
     def _burn_func(self, arr, exposure):
-        arr = arr.astype(np.float32)
-        result = np.clip(arr - arr * exposure * 0.5, 0, 1)
+        result = np.clip(arr[..., :3] - arr[..., :3] * exposure * 0.5, 0, 1)
+        if arr.shape[2] == 4:
+            result = np.concatenate([result, arr[..., 3:4]], axis=2)
         return result
 
     def _sponge_func(self, arr, amount):
-        arr = arr.astype(np.float32)
         gray = np.mean(arr[..., :3], axis=2, keepdims=True)
         gray = np.repeat(gray, 3, axis=2)
         if amount > 0:
