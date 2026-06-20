@@ -229,10 +229,26 @@
           <div class="feature-icon bg-cyan-500/10 text-cyan-400 mb-5">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
-          <h3 class="text-lg font-bold mb-3">Undo/Redo Ilimitado</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">100 níveis de histórico com preview visual no History Panel. Snapshots completos para retroceder qualquer operação.</p>
+            <h3 class="text-lg font-bold mb-3">Undo/Redo Ilimitado</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">100 níveis de histórico com preview visual no History Panel. Snapshots completos para retroceder qualquer operação.</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-8">
+            <div class="feature-icon bg-cyan-500/10 text-cyan-400 mb-5">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+            </div>
+            <h3 class="text-lg font-bold mb-3">AI Assistant (Chat)</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Assistente de IA integrado no painel direito. Faça perguntas sobre edição, peça sugestões ou comandos — suporta OpenAI, Anthropic e LLMs locais.</p>
+          </div>
+
+          <div class="glass-card rounded-2xl p-8">
+            <div class="feature-icon bg-purple-500/10 text-purple-400 mb-5">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
+            </div>
+            <h3 class="text-lg font-bold mb-3">Windows + Cross-platform</h3>
+            <p class="text-gray-400 text-sm leading-relaxed">Build nativo Windows via PowerShell (build_windows.ps1). Engine C++ compila em Linux, Windows e macOS. GPU acceleration com OpenGL.</p>
+          </div>
         </div>
-      </div>
     </div>
   </section>
 
@@ -312,26 +328,59 @@
           </div>
         </div>
 
-        <div class="glass-card rounded-2xl p-8">
-          <div class="flex items-center gap-3 mb-6">
-            <span class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold">&#9889;</span>
-            <h3 class="text-lg font-bold">C++ Engine (Qt5/OpenGL)</h3>
+          <div class="glass-card rounded-2xl p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <span class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold">&#9889;</span>
+              <h3 class="text-lg font-bold">C++ Engine (Qt5/OpenGL)</h3>
+            </div>
+            <div class="code-block text-sm">
+              <span class="cmd">cd reverseaffinite/cpp_editor</span><br>
+              <span class="cmd">chmod +x build.sh</span><br>
+              <span class="cmd">./build.sh  # auto-detecta distro</span><br>
+              <span class="output">&#10003; C++ engine compiled — ~304 KB binary</span>
+            </div>
+            <p class="text-gray-600 text-xs mt-4">Auto-detecta: apt (Debian/Ubuntu), dnf (Fedora), pacman (Arch), zypper (openSUSE), apk (Alpine), xbps (Void), emerge (Gentoo).</p>
           </div>
-          <div class="code-block text-sm">
-            <span class="cmd">pip install aqtinstall</span><br>
-            <span class="cmd">cd reverseaffinite/cpp_editor</span><br>
-            <span class="cmd">chmod +x build.sh</span><br>
-            <span class="cmd">./build.sh</span><br>
-            <span class="output">&#10003; C++ engine compiled — ~104 KB binary</span>
+
+          <div class="glass-card rounded-2xl p-8">
+            <div class="flex items-center gap-3 mb-6">
+              <span class="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400 font-bold">&#9861;</span>
+              <h3 class="text-lg font-bold">Windows (PowerShell)</h3>
+            </div>
+            <div class="code-block text-sm">
+              <span class="cmd">cd reverseaffinite\cpp_editor</span><br>
+              <span class="cmd">powershell -ExecutionPolicy Bypass .\build_windows.ps1</span><br>
+              <span class="output">&#10003; reverseaffinite.exe built</span>
+            </div>
+            <p class="text-gray-600 text-xs mt-4">Requer CMake + Qt5 + Visual Studio Build Tools. Detecta GPU NVIDIA automaticamente.</p>
           </div>
-          <p class="text-gray-600 text-xs mt-4">Requer Python + CMake + g++. Qt5 instalado via apt ou aqtinstall.</p>
-        </div>
-      </div>
     </div>
   </section>
 
 
   <!-- DOWNLOAD -->
+  <!-- BRANCHES -->
+  <section class="py-16 relative border-t border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="glass rounded-2xl p-8 max-w-4xl mx-auto">
+        <div class="flex flex-wrap items-center gap-6">
+          <div>
+            <h3 class="text-lg font-bold mb-2"><span class="gradient-orange">main</span> — Versão Limpa</h3>
+            <p class="text-gray-400 text-sm">Photo editor completo sem integração AI. Ideal para uso estável.</p>
+          </div>
+          <div class="w-px h-12 bg-white/10 hidden sm:block"></div>
+          <div>
+            <h3 class="text-lg font-bold mb-2"><span class="gradient-cyan">feature/opencode</span> — AI Integrado</h3>
+            <p class="text-gray-400 text-sm">Mesmo editor + painel de chat AI (OpenAI/Anthropic/local LLM).</p>
+          </div>
+          <div class="ml-auto">
+            <a href="https://github.com/TyagoAlves/reverseaffinite" class="text-sm text-cyan-400 hover:underline">Ver branches &#8599;</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="download" class="py-32 relative border-t border-white/5">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-20">
