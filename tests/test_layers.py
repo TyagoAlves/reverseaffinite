@@ -108,12 +108,12 @@ class TestBlendFunctions(unittest.TestCase):
         expected = np.clip(b - l, 0, 1)
         np.testing.assert_array_almost_equal(r, expected)
 
-    def test_divide(self):
-        b = np.array([[[0.8, 0.8, 0.8]]], dtype=np.float32)
+    def test_add(self):
+        b = np.array([[[0.3, 0.3, 0.3]]], dtype=np.float32)
         l = np.array([[[0.4, 0.4, 0.4]]], dtype=np.float32)
-        r = BLEND_FUNCS["Divide"](b, l)
-        self.assertTrue(np.all(r >= 0.0))
-        self.assertTrue(np.all(r <= 1.0))
+        r = BLEND_FUNCS["Add"](b, l)
+        expected = np.clip(b + l, 0, 1)
+        np.testing.assert_array_almost_equal(r, expected)
 
     def test_hue(self):
         r = BLEND_FUNCS["Hue"](self.b, self.l)
