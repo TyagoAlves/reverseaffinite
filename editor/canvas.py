@@ -116,7 +116,7 @@ class CanvasView(QGraphicsView):
             layer = self.layer_stack.active
             if layer:
                 layer.image = self._temp_layer_image.copy()
-                self.render()
+                self._refresh()
 
     def _save_state(self, desc="Edit"):
         self.history.push(desc, self.layer_stack.layers, self.layer_stack.active_index)
