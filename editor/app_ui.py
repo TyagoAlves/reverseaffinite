@@ -20,7 +20,6 @@ from .resources import apply_dark_theme
 from .tool_icons import get_tool_icon
 from .i18n import _, get_translator
 from .openconsole import install_console
-from .openchat import AIChatPanel
 from .video_mode import VideoMode
 from .resources import get_app_icon
 
@@ -723,10 +722,6 @@ class MainWindow(QMainWindow):
         # Path panel
         self.path_panel = PathPanel(lambda: self.canvas)
         self.right_tabs.addTab(self.path_panel, _("Path"))
-
-        # AI Assistant panel
-        self.ai_panel = AIChatPanel(lambda: self.canvas)
-        self.right_tabs.addTab(self.ai_panel, "AI")
 
         self.right_dock = QDockWidget(_("Panels"), self)
         self.right_dock.setWidget(self.right_tabs)
