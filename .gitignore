@@ -18,3 +18,7 @@ venv/
 qt_local/
 build/
 tmp/
+*.AppImage
+dist/
+build/
+*.spec
