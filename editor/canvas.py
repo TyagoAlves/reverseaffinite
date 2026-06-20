@@ -416,6 +416,71 @@ class CanvasView(QGraphicsView):
         p.end()
         self._refresh()
 
+    def _apply_pixel_op(self, pos, op_func, strength=1.0):
+        layer = self.layer_stack.active
+        if not layer or layer.locked:
+            return
+        radius = max(1, self.tool_size // 2)
+        x, y = int(pos.x()), int(pos.y())
+        w, h = layer.image.width(), layer.image.height()
+        x0, y0 = max(0, x - radius), max(0, y - radius)
+        x1, y1 = min(w, x + radius + 1), min(h, y + radius + 1)
+        if x0 >= x1 or y0 >= y1:
+            return
+        from .layers import to_array, from_array
+        rect = QRect(x0, y0, x1 - x0, y1 - y0)
+        arr = to_array(layer.image.copy(rect))
+        result = op_func(arr, strength)
+        new_img = from_array(result)
+        p = QPainter(layer.image)
+        p.setClipRect(rect)
+        if self.has_selection():
+            self._apply_selection_clip(p)
+        p.drawImage(x0, y0, new_img)
+        p.end()
+        self._refresh()
+
+    def _dodge_func(self, arr, exposure):
+        arr = arr.astype(np.float32)
+        result = np.clip(arr + (1.0 - arr) * exposure * 0.5, 0, 1)
+        return result
+
+    def _burn_func(self, arr, exposure):
+        arr = arr.astype(np.float32)
+        result = np.clip(arr - arr * exposure * 0.5, 0, 1)
+        return result
+
+    def _sponge_func(self, arr, amount):
+        arr = arr.astype(np.float32)
+        gray = np.mean(arr[..., :3], axis=2, keepdims=True)
+        gray = np.repeat(gray, 3, axis=2)
+        if amount > 0:
+            result = arr[..., :3] + (arr[..., :3] - gray) * amount * 0.5
+        else:
+            result = arr[..., :3] + (gray - arr[..., :3]) * abs(amount) * 0.5
+        result = np.clip(result, 0, 1)
+        if arr.shape[2] == 4:
+            result = np.concatenate([result, arr[..., 3:4]], axis=2)
+        return result
+
+    def dodge_point(self, pos, exposure=0.5):
+        self._apply_pixel_op(pos, self._dodge_func, exposure)
+
+    def burn_point(self, pos, exposure=0.5):
+        self._apply_pixel_op(pos, self._burn_func, exposure)
+
+    def saturate_point(self, pos, amount=0.5):
+        self._apply_pixel_op(pos, self._sponge_func, amount)
+
+    def dodge_line(self, p1, p2, exposure=0.5):
+        self.dodge_point(p2, exposure)
+
+    def burn_line(self, p1, p2, exposure=0.5):
+        self.burn_point(p2, exposure)
+
+    def saturate_line(self, p1, p2, amount=0.5):
+        self.saturate_point(p2, amount)
+
     def get_pixel_color(self, pos):
         layer = self.layer_stack.active
         if not layer:

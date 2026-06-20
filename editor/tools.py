@@ -509,12 +509,10 @@ class DodgeTool(Tool):
     cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
-        canvas.tool_color = QColor(255, 255, 255)
-        canvas.draw_point(pos)
+        canvas.dodge_point(pos, canvas.tool_opacity)
 
     def move(self, canvas, last, pos, mods):
-        canvas.tool_color = QColor(255, 255, 255)
-        canvas.draw_line(last, pos)
+        canvas.dodge_line(last, pos, canvas.tool_opacity)
 
 
 class BurnTool(Tool):
@@ -523,12 +521,10 @@ class BurnTool(Tool):
     cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
-        canvas.tool_color = QColor(0, 0, 0)
-        canvas.draw_point(pos)
+        canvas.burn_point(pos, canvas.tool_opacity)
 
     def move(self, canvas, last, pos, mods):
-        canvas.tool_color = QColor(0, 0, 0)
-        canvas.draw_line(last, pos)
+        canvas.burn_line(last, pos, canvas.tool_opacity)
 
 
 class SpongeTool(Tool):
@@ -537,12 +533,10 @@ class SpongeTool(Tool):
     cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
-        canvas.tool_color = QColor(128, 128, 128)
-        canvas.draw_point(pos)
+        canvas.saturate_point(pos, canvas.tool_opacity * 2 - 1)
 
     def move(self, canvas, last, pos, mods):
-        canvas.tool_color = QColor(128, 128, 128)
-        canvas.draw_line(last, pos)
+        canvas.saturate_line(last, pos, canvas.tool_opacity * 2 - 1)
 
 
 # Register all tools

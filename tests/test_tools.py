@@ -199,17 +199,42 @@ class TestToolFunctionality(unittest.TestCase):
         self.assertTrue(hasattr(crop, 'move'))
         self.assertTrue(hasattr(crop, 'release'))
 
-    def test_dodge_tool(self):
+    def test_dodge_tool_lightens_pixels(self):
         d = DodgeTool()
         self.assertEqual(d.name, "Dodge Tool")
+        canvas = CanvasView()
+        canvas.new_image(30, 30, QColor(100, 100, 100))
+        canvas.tool_size = 5
+        canvas.tool_opacity = 1.0
+        d.press(canvas, QPointF(15, 15), Qt.NoModifier)
+        img = canvas.layer_stack.active.image
+        c = img.pixelColor(15, 15)
+        self.assertGreater(c.red(), 100)
+        self.assertGreater(c.green(), 100)
+        self.assertGreater(c.blue(), 100)
 
-    def test_burn_tool(self):
+    def test_burn_tool_darkens_pixels(self):
         b = BurnTool()
         self.assertEqual(b.name, "Burn Tool")
+        canvas = CanvasView()
+        canvas.new_image(30, 30, QColor(200, 200, 200))
+        canvas.tool_size = 5
+        canvas.tool_opacity = 1.0
+        b.press(canvas, QPointF(15, 15), Qt.NoModifier)
+        img = canvas.layer_stack.active.image
+        c = img.pixelColor(15, 15)
+        self.assertLess(c.red(), 200)
+        self.assertLess(c.green(), 200)
+        self.assertLess(c.blue(), 200)
 
-    def test_sponge_tool(self):
+    def test_sponge_tool_does_not_crash(self):
         s = SpongeTool()
         self.assertEqual(s.name, "Sponge Tool")
+        canvas = CanvasView()
+        canvas.new_image(20, 20, QColor(100, 150, 200))
+        canvas.tool_size = 5
+        canvas.tool_opacity = 0.5
+        s.press(canvas, QPointF(10, 10), Qt.NoModifier)
 
     def test_shape_tool_rectangle(self):
         canvas = CanvasView()
