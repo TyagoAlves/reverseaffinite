@@ -14,12 +14,12 @@ from PyQt5.QtWidgets import (
 from .canvas import CanvasView
 from .panels import ColorPanel, SwatchesPanel, ChannelsPanel, LayerPanel, HistoryPanel, ToolOptionsPanel, NavigatorPanel, GradientPanel, BrushPanel, PathPanel
 from .tools import TOOL_LIST, ShapeTool
+from .file_dialog import get_open_file_name, get_save_file_name
 from .settings import SettingsManager
 from .preferences_dialog import PreferencesDialog
 from .resources import apply_dark_theme
 from .tool_icons import get_tool_icon
 from .i18n import _, get_translator
-from .openconsole import install_console
 from .video_mode import VideoMode
 from .resources import get_app_icon
 
@@ -751,7 +751,6 @@ class MainWindow(QMainWindow):
 
         self.create_menus()
         self.create_statusbar()
-        self.console_dock = install_console(self, lambda: self.canvas)
 
         self.canvas.mouse_moved.connect(self._update_coords)
         self.canvas.status_changed.connect(self.statusBar().showMessage)
@@ -1032,9 +1031,9 @@ class MainWindow(QMainWindow):
 
     def _open_file(self):
         from .file_io import get_open_filter
-        path, _filter = QFileDialog.getOpenFileName(
-            self, _("Open Image"), "",
-            get_open_filter()
+        path, _filter = get_open_file_name(
+            _("Open Image"), "",
+            get_open_filter(), self
         )
         if path and self.canvas.open_image(path):
             self.current_path = path

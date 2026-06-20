@@ -15,6 +15,7 @@ from reverseaffinity.shared.resources import apply_dark_theme
 from editor.timeline_widget import TimelineWidget
 from editor.transport_bar import TransportBar
 from editor.video_engine import Timeline, Track, Clip, TransportState
+from editor.file_dialog import get_open_file_name, get_open_file_names, get_save_file_name
 
 
 class SourceMonitor(QWidget):
@@ -63,9 +64,10 @@ class SourceMonitor(QWidget):
         self._play_timer.timeout.connect(self._advance_frame)
 
     def import_media(self):
-        path, _filter = QFileDialog.getOpenFileName(
-            self, _("Import Media"),
-            "", _("Media Files (*.mp4 *.avi *.mov *.mkv *.webm *.png *.jpg *.jpeg *.gif);;All Files (*)")
+        path, _filter = get_open_file_name(
+            _("Import Media"), "",
+            _("Media Files (*.mp4 *.avi *.mov *.mkv *.webm *.png *.jpg *.jpeg *.gif);;All Files (*)"),
+            self
         )
         if path:
             self._media_path = path
@@ -210,7 +212,7 @@ class ProjectPanel(QWidget):
         self._add_to_timeline_action.setEnabled(len(selected) > 0)
 
     def import_media(self):
-        paths, _filter = QFileDialog.getOpenFileNames(
+        paths, _filter = get_open_file_names(
             self, _("Import Media"),
             "", _("Media Files (*.mp4 *.avi *.mov *.mkv *.webm *.png *.jpg *.jpeg *.gif);;All Files (*)")
         )
@@ -435,12 +437,12 @@ class VideoMainWindow(QMainWindow):
         self.statusBar().showMessage(_("New project created"))
 
     def open_project(self):
-        path, _filter = QFileDialog.getOpenFileName(self, _("Open Project"), "", _("Project Files (*.revideo *.json);;All Files (*)"))
+        path, _filter = get_open_file_name(_("Open Project"), "", _("Project Files (*.revideo *.json);;All Files (*)"), self)
         if path:
             self.statusBar().showMessage(_("Project loaded: ") + os.path.basename(path))
 
     def save_project(self):
-        path, _filter = QFileDialog.getSaveFileName(self, _("Save Project"), "", _("Project Files (*.revideo);;All Files (*)"))
+        path, _filter = get_save_file_name(_("Save Project"), "", _("Project Files (*.revideo);;All Files (*)"), self)
         if path:
             self.statusBar().showMessage(_("Project saved"))
 
@@ -448,9 +450,10 @@ class VideoMainWindow(QMainWindow):
         self.save_project()
 
     def export_media(self):
-        path, _filter = QFileDialog.getSaveFileName(
-            self, _("Export Media"), "",
-            _("Video Files (*.mp4);;Image Sequence (*.png *.jpg);;All Files (*)")
+        path, _filter = get_save_file_name(
+            _("Export Media"), "",
+            _("Video Files (*.mp4);;Image Sequence (*.png *.jpg);;All Files (*)"),
+            self
         )
         if path:
             self.statusBar().showMessage(_("Export started: ") + os.path.basename(path))
