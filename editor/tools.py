@@ -1,13 +1,11 @@
-"""
-Professional tools inspired by industry standards.
+"""Professional tools (Photoshop-style naming)
 Hotkeys:
-  V - Move          M - Rect Select   L - Lasso
-  W - Magic Wand    B - Brush         P - Pen
-  N - Pencil        E - Eraser        G - Gradient
-  U - Shape         S - Clone Stamp   Y - History Brush
-  H - Hand          Z - Zoom          I - Color Picker
-  K - Fill          J - Healing Brush C - Crop
-  T - Text
+  V - Move Tool       M - Rect Marquee   L - Lasso Tool
+  W - Magic Wand      B - Brush Tool     P - Pen Tool
+  N - Pencil Tool     E - Eraser Tool    G - Gradient Tool
+  U - Rectangle Tool  S - Clone Stamp    J - Spot Healing
+  H - Hand Tool       Z - Zoom Tool      I - Eyedropper
+  K - Paint Bucket    C - Crop Tool      T - Type Tool
 """
 
 from PyQt5.QtCore import Qt, QPointF, QRectF
@@ -47,7 +45,7 @@ class Tool:
 
 
 class MoveTool(Tool):
-    name = "Move"
+    name = "Move Tool"
     shortcut = "V"
     cursor_shape = Qt.SizeAllCursor
 
@@ -68,7 +66,7 @@ class MoveTool(Tool):
 
 
 class RectSelectTool(Tool):
-    name = "Rectangular Select"
+    name = "Rectangular Marquee Tool"
     shortcut = "M"
     cursor_shape = Qt.CrossCursor
 
@@ -92,7 +90,7 @@ class RectSelectTool(Tool):
 
 
 class EllipseSelectTool(Tool):
-    name = "Elliptical Select"
+    name = "Elliptical Marquee Tool"
     shortcut = ""
     cursor_shape = Qt.CrossCursor
 
@@ -116,7 +114,7 @@ class EllipseSelectTool(Tool):
 
 
 class LassoTool(Tool):
-    name = "Lasso"
+    name = "Lasso Tool"
     shortcut = "L"
     cursor_shape = Qt.CrossCursor
 
@@ -138,7 +136,7 @@ class LassoTool(Tool):
 
 
 class MagicWandTool(Tool):
-    name = "Magic Wand"
+    name = "Magic Wand Tool"
     shortcut = "W"
     cursor_shape = Qt.CrossCursor
 
@@ -147,7 +145,7 @@ class MagicWandTool(Tool):
 
 
 class PencilTool(Tool):
-    name = "Pencil"
+    name = "Pencil Tool"
     shortcut = "N"
     cursor_shape = Qt.CrossCursor
 
@@ -159,7 +157,7 @@ class PencilTool(Tool):
 
 
 class BrushTool(Tool):
-    name = "Brush"
+    name = "Brush Tool"
     shortcut = "B"
     cursor_shape = Qt.CrossCursor
 
@@ -171,7 +169,7 @@ class BrushTool(Tool):
 
 
 class EraserTool(Tool):
-    name = "Eraser"
+    name = "Eraser Tool"
     shortcut = "E"
     cursor_shape = Qt.CrossCursor
 
@@ -183,7 +181,7 @@ class EraserTool(Tool):
 
 
 class GradientTool(Tool):
-    name = "Gradient"
+    name = "Gradient Tool"
     shortcut = "G"
     cursor_shape = Qt.CrossCursor
 
@@ -195,7 +193,7 @@ class GradientTool(Tool):
 
 
 class ShapeTool(Tool):
-    name = "Shape"
+    name = "Rectangle Tool"
     shortcut = "U"
     cursor_shape = Qt.CrossCursor
 
@@ -207,7 +205,7 @@ class ShapeTool(Tool):
 
 
 class CloneStampTool(Tool):
-    name = "Clone Stamp"
+    name = "Clone Stamp Tool"
     shortcut = "S"
     cursor_shape = Qt.CrossCursor
     clone_source = None
@@ -228,7 +226,7 @@ class CloneStampTool(Tool):
 
 
 class ColorPickerTool(Tool):
-    name = "Color Picker"
+    name = "Eyedropper Tool"
     shortcut = "I"
     cursor_shape = Qt.CrossCursor
 
@@ -239,7 +237,7 @@ class ColorPickerTool(Tool):
 
 
 class FloodFillTool(Tool):
-    name = "Flood Fill"
+    name = "Paint Bucket Tool"
     shortcut = "K"
     cursor_shape = Qt.CrossCursor
 
@@ -248,7 +246,7 @@ class FloodFillTool(Tool):
 
 
 class HandTool(Tool):
-    name = "Hand"
+    name = "Hand Tool"
     shortcut = "H"
     cursor_shape = Qt.OpenHandCursor
 
@@ -262,7 +260,7 @@ class HandTool(Tool):
 
 
 class ZoomTool(Tool):
-    name = "Zoom"
+    name = "Zoom Tool"
     shortcut = "Z"
     cursor_shape = Qt.CrossCursor
 
@@ -274,7 +272,7 @@ class ZoomTool(Tool):
 
 
 class PenTool(Tool):
-    name = "Pen"
+    name = "Pen Tool"
     shortcut = "P"
     cursor_shape = Qt.CrossCursor
     dragging = False
@@ -340,7 +338,7 @@ class PenTool(Tool):
 
 
 class TextTool(Tool):
-    name = "Text"
+    name = "Horizontal Type Tool"
     shortcut = "T"
     cursor_shape = Qt.IBeamCursor
 
@@ -412,7 +410,7 @@ class TextTool(Tool):
 
 
 class HealingBrushTool(Tool):
-    name = "Healing Brush"
+    name = "Spot Healing Brush Tool"
     shortcut = "J"
     cursor_shape = Qt.CrossCursor
     healing_source = None
@@ -461,7 +459,7 @@ class HealingBrushTool(Tool):
 
 
 class CropTool(Tool):
-    name = "Crop"
+    name = "Crop Tool"
     shortcut = "C"
     cursor_shape = Qt.CrossCursor
 

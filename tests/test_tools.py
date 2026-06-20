@@ -30,11 +30,11 @@ class TestToolRegistration(unittest.TestCase):
 
     def test_all_tools_in_name_map(self):
         expected_names = [
-            "move", "rectangular select", "elliptical select", "lasso",
-            "magic wand", "pencil", "brush", "eraser",
-            "gradient", "shape", "clone stamp",
-            "color picker", "flood fill", "hand", "zoom",
-            "pen", "text", "healing brush", "crop",
+            "move tool", "rectangular marquee tool", "elliptical marquee tool", "lasso tool",
+            "magic wand tool", "pencil tool", "brush tool", "eraser tool",
+            "gradient tool", "rectangle tool", "clone stamp tool",
+            "eyedropper tool", "paint bucket tool", "hand tool", "zoom tool",
+            "pen tool", "horizontal type tool", "spot healing brush tool", "crop tool",
         ]
         for name in expected_names:
             with self.subTest(name=name):
@@ -101,22 +101,22 @@ class TestToolRegistration(unittest.TestCase):
             self.assertIsNotNone(instance)
 
     def test_set_tool_by_name(self):
-        self.assertIn("brush", TOOLS_BY_NAME)
-        self.assertIs(TOOLS_BY_NAME["brush"], BrushTool)
+        self.assertIn("brush tool", TOOLS_BY_NAME)
+        self.assertIs(TOOLS_BY_NAME["brush tool"], BrushTool)
 
 
 class TestToolShortcutsInCanvas(unittest.TestCase):
     def test_key_mappings_consistent(self):
         key_map = {
-            "v": "Move", "m": "Rectangular Select",
-            "l": "Lasso", "w": "Magic Wand",
-            "b": "Brush", "p": "Pen",
-            "n": "Pencil", "e": "Eraser",
-            "g": "Gradient", "u": "Shape",
-            "s": "Clone Stamp", "i": "Color Picker",
-            "k": "Flood Fill", "h": "Hand",
-            "z": "Zoom", "j": "Healing Brush",
-            "c": "Crop", "t": "Text",
+            "v": "Move Tool", "m": "Rectangular Marquee Tool",
+            "l": "Lasso Tool", "w": "Magic Wand Tool",
+            "b": "Brush Tool", "p": "Pen Tool",
+            "n": "Pencil Tool", "e": "Eraser Tool",
+            "g": "Gradient Tool", "u": "Rectangle Tool",
+            "s": "Clone Stamp Tool", "i": "Eyedropper Tool",
+            "k": "Paint Bucket Tool", "h": "Hand Tool",
+            "z": "Zoom Tool", "j": "Spot Healing Brush Tool",
+            "c": "Crop Tool", "t": "Horizontal Type Tool",
         }
         for shortcut, tool_name in key_map.items():
             with self.subTest(shortcut=shortcut):

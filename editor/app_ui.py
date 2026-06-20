@@ -17,15 +17,16 @@ from .tools import TOOL_LIST
 from .settings import SettingsManager
 from .preferences_dialog import PreferencesDialog
 from .resources import apply_dark_theme
+from .tool_icons import get_tool_icon
 
 
 class ToolPalette(QWidget):
-    """Vertical tool palette on the left side (like Photoshop/Affinity)."""
+    """Vertical tool palette on the left side (like Photoshop)."""
 
     def __init__(self, canvas_getter, parent=None):
         super().__init__(parent)
         self.get_canvas = canvas_getter
-        self.setFixedWidth(46)
+        self.setFixedWidth(42)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(1)
@@ -40,20 +41,23 @@ class ToolPalette(QWidget):
                 btn = QToolButton()
                 btn.setCheckable(True)
                 btn.setToolTip(f"{tool_cls.name} ({tool_cls.shortcut})")
-                btn.setText(tool_cls.shortcut)
-                btn.setFixedSize(38, 28)
+                icon = get_tool_icon(tool_cls.name)
+                if not icon.isNull():
+                    btn.setIcon(icon)
+                    btn.setIconSize(QSize(20, 20))
+                else:
+                    btn.setText(tool_cls.shortcut)
+                btn.setFixedSize(36, 26)
                 btn.setStyleSheet("""
                     QToolButton {
                         border: 1px solid #2a2a2a; border-radius: 3px;
-                        font-weight: bold; font-size: 11px;
-                        background: #1a1a1a; color: #c0c0c0;
-                        font-family: 'Segoe UI', 'Inter', sans-serif;
+                        background: #1a1a1a;
                     }
                     QToolButton:checked {
-                        background: #3a8ac4; color: #fff; border-color: #5a9ad4;
+                        background: #3a8ac4; border-color: #5a9ad4;
                     }
                     QToolButton:hover:!checked {
-                        background: #2a2a2a; border-color: #444;
+                        background: #2a2a2a; border-color: #555;
                     }
                 """)
                 btn.clicked.connect(lambda checked, t=tool_cls: self._select_tool(t))
@@ -61,22 +65,20 @@ class ToolPalette(QWidget):
                 layout.addWidget(btn)
                 self.tool_buttons[tool_cls.name] = btn
 
-            # Separator after each group (except last)
             if group_name != TOOL_LIST[-1][0]:
                 sep = QFrame()
                 sep.setFrameShape(QFrame.HLine)
-                sep.setStyleSheet("color: #222; max-height: 1px; margin: 2px 4px;")
+                sep.setStyleSheet("color: #333; max-height: 1px; margin: 2px 6px;")
                 layout.addWidget(sep)
 
         layout.addStretch()
 
-        # Foreground/Background color swatches at bottom (like Photoshop)
         self.fg_btn = QPushButton()
-        self.fg_btn.setFixedSize(38, 38)
+        self.fg_btn.setFixedSize(36, 36)
         self.fg_btn.setToolTip("Foreground Color")
         self.fg_btn.setCursor(Qt.PointingHandCursor)
         self.bg_btn = QPushButton()
-        self.bg_btn.setFixedSize(38, 38)
+        self.bg_btn.setFixedSize(36, 36)
         self.bg_btn.setToolTip("Background Color")
         self.bg_btn.setCursor(Qt.PointingHandCursor)
 
@@ -94,7 +96,6 @@ class ToolPalette(QWidget):
         swatch_layout.addWidget(self.bg_btn)
         layout.addLayout(swatch_layout)
 
-        # Default: first tool selected
         if self.button_group.buttons():
             self.button_group.buttons()[0].setChecked(True)
 
@@ -677,7 +678,7 @@ class MainWindow(QMainWindow):
         self.dim_label.setText(f"{img.width()}x{img.height()}")
 
     def _update_tool_label(self):
-        self.tool_label.setText(f"Tool: {self.canvas.tool.name}")
+        self.tool_label.setText(self.canvas.tool.name)
 
     def _update_coords(self, x, y):
         self.coord_label.setText(f"X: {int(x):4d}  Y: {int(y):4d}")
@@ -829,8 +830,8 @@ class MainWindow(QMainWindow):
     def create_statusbar(self):
         sb = self.statusBar()
         sb.showMessage("Ready")
-        self.tool_label = QLabel("Tool: Pencil")
-        self.tool_label.setFixedWidth(120)
+        self.tool_label = QLabel("Move Tool")
+        self.tool_label.setFixedWidth(150)
         sb.addPermanentWidget(self.tool_label)
         self.zoom_label = QLabel("100%")
         self.zoom_label.setFixedWidth(55)
