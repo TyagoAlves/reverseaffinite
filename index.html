@@ -3,129 +3,305 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>reverseaffinite Photo — Editor de Imagens Profissional para Linux</title>
-  <meta name="description" content="Editor de imagens profissional open source para Linux. 15+ ferramentas, camadas, filtros, seleções. Inspirado em Affinity Photo e Photoshop." />
+  <title>reverseaffinite — Editor de Imagens Profissional para Linux</title>
+  <meta name="description" content="Editor de imagens open source para Linux. 15+ ferramentas profissionais, camadas com 12 blend modes, filtros, seleções precisas e engine C++." />
+  <meta property="og:title" content="reverseaffinite — Editor de Imagens Profissional" />
+  <meta property="og:description" content="O melhor editor de imagens open source para Linux." />
+  <meta property="og:url" content="https://tyagoalves.github.io/reverseaffinite/" />
+  <meta name="theme-color" content="#0a0e1a" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-          colors: { gray: { 950: '#0a0e1a' } },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] },
+          colors: { gray: { 950: '#060a14' } },
         },
       },
     };
   </script>
   <style>
-    .gradient-text { background: linear-gradient(135deg, #f97316, #fb923c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #060a14; color: #f1f5f9; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+
+    .gradient-text { background: linear-gradient(135deg, #f97316, #a855f7, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .gradient-orange { background: linear-gradient(135deg, #f97316, #fb923c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .gradient-purple { background: linear-gradient(135deg, #a855f7, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .gradient-cyan { background: linear-gradient(135deg, #06b6d4, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .hero-glow { position: absolute; width: 600px; height: 600px; border-radius: 50%; background: radial-gradient(circle, rgba(249,115,22,0.12), transparent 70%); pointer-events: none; }
-    .hero-glow-cyan { position: absolute; width: 400px; height: 400px; border-radius: 50%; background: radial-gradient(circle, rgba(6,182,212,0.1), transparent 70%); pointer-events: none; }
-    .code-block { background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; line-height: 1.7; overflow-x: auto; }
+
+    .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); }
+    .glass-card { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.05); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .glass-card:hover { border-color: rgba(249, 115, 22, 0.3); transform: translateY(-4px); box-shadow: 0 20px 60px rgba(249,115,22,0.08); }
+
+    .hero-glow { position: absolute; width: 700px; height: 700px; border-radius: 50%; pointer-events: none; filter: blur(80px); opacity: 0.15; }
+    .hero-glow-1 { background: radial-gradient(circle, #f97316, transparent 70%); top: -300px; left: -200px; }
+    .hero-glow-2 { background: radial-gradient(circle, #a855f7, transparent 70%); bottom: -200px; right: -200px; }
+    .hero-glow-3 { background: radial-gradient(circle, #06b6d4, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+    .card-hover { transition: all 0.3s ease; }
+    .card-hover:hover { border-color: rgba(249,115,22,0.3); transform: translateY(-2px); }
+
+    .shortcut-key { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.08); }
+
+    .code-block { background: rgba(6, 10, 20, 0.8); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.8; overflow-x: auto; }
     .code-block .prompt { color: #22d3ee; }
     .code-block .cmd { color: #e2e8f0; }
     .code-block .output { color: #64748b; }
-    .card-hover { transition: all 0.3s ease; }
-    .card-hover:hover { border-color: rgba(249,115,22,0.3); transform: translateY(-2px); }
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: #0f172a; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #334155; }
-    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-    .float { animation: float 4s ease-in-out infinite; }
-    .float-delayed { animation: float 5s ease-in-out 1s infinite; }
-    .grid-pattern { background-image: radial-gradient(rgba(249,115,22,0.03) 1px, transparent 1px); background-size: 30px 30px; }
+
+    .grid-pattern { background-image: radial-gradient(rgba(249,115,22,0.03) 1px, transparent 1px); background-size: 40px 40px; }
+
+    .marching-ants { stroke-dasharray: 8 4; animation: march 0.5s linear infinite; }
+    @keyframes march { to { stroke-dashoffset: -12; } }
+
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+    .float { animation: float 5s ease-in-out infinite; }
+
+    .hero-btn { position: relative; overflow: hidden; }
+    .hero-btn::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; background: linear-gradient(135deg, #f97316, #a855f7, #06b6d4); z-index: -1; opacity: 0; transition: opacity 0.4s; }
+    .hero-btn:hover::after { opacity: 1; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #060a14; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+
+    .animate-in { opacity: 0; transform: translateY(20px); animation: fadeInUp 0.6s ease forwards; }
+    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+    .feature-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); color: #fb923c; }
+    .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #fb923c; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    section { position: relative; z-index: 1; }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 </head>
-<body class="bg-[#0a0e1a] text-gray-100 font-sans antialiased">
+<body>
 
-  <nav class="fixed top-0 left-0 right-0 z-50 bg-[#0a0e1a]/80 backdrop-blur-xl border-b border-gray-800">
+  <!-- NAV -->
+  <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
-        <a href="/reverseaffinite/" class="flex items-center gap-2">
-          <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">RA</span>
-          <span class="font-bold text-lg">reverse<span class="text-orange-400">affinite</span></span>
+        <a href="https://tyagoalves.github.io/reverseaffinite/" class="flex items-center gap-3 group">
+          <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 via-purple-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm group-hover:scale-105 transition">RA</span>
+          <span class="font-bold text-xl">reverse<span class="text-orange-400">affinite</span></span>
         </a>
-        <div class="hidden md:flex items-center gap-6 text-sm">
-          <a href="#features" class="text-gray-400 hover:text-white transition">Recursos</a>
-          <a href="#install" class="text-gray-400 hover:text-white transition">Instalar</a>
-          <a href="/reverseaffinite/documentation" class="text-gray-400 hover:text-white transition">Documentação</a>
-          <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1.5 text-gray-400 hover:text-white transition">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-            GitHub
+        <div class="hidden md:flex items-center gap-8 text-sm">
+          <a href="#features" class="text-gray-400 hover:text-white transition font-medium">Recursos</a>
+          <a href="#install" class="text-gray-400 hover:text-white transition font-medium">Instalar</a>
+          <a href="#shortcuts" class="text-gray-400 hover:text-white transition font-medium">Atalhos</a>
+          <a href="https://tyagoalves.github.io/reverseaffinite/documentation" class="text-gray-400 hover:text-white transition font-medium">Documentação</a>
+          <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" rel="noopener" class="text-gray-400 hover:text-white transition">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
           </a>
-          <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="bg-gradient-to-r from-orange-500 to-cyan-500 text-white px-4 py-2 rounded-lg font-semibold hover:opacity-90 transition">Download</a>
+          <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white px-5 py-2 rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-300">
+            Download
+          </a>
         </div>
-        <button id="mobile-menu-btn" class="md:hidden text-gray-400 hover:text-white" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+        <button class="md:hidden text-gray-400 hover:text-white p-2" onclick="document.getElementById('mobileMenu').classList.toggle('hidden')">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
       </div>
     </div>
-    <div id="mobile-menu" class="hidden md:hidden border-t border-gray-800 bg-gray-900">
+    <div id="mobileMenu" class="hidden md:hidden border-t border-white/5 bg-[#060a14]">
       <div class="px-4 py-4 space-y-3">
-        <a href="#features" class="block text-gray-400 hover:text-white">Recursos</a>
-        <a href="#install" class="block text-gray-400 hover:text-white">Instalar</a>
-        <a href="/reverseaffinite/documentation" class="block text-gray-400 hover:text-white">Documentação</a>
-        <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" class="block text-gray-400 hover:text-white">GitHub</a>
-        <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="block bg-gradient-to-r from-orange-500 to-cyan-500 text-white px-4 py-2 rounded-lg font-semibold text-center">Download</a>
+        <a href="#features" class="block text-gray-400 hover:text-white py-2">Recursos</a>
+        <a href="#install" class="block text-gray-400 hover:text-white py-2">Instalar</a>
+        <a href="#shortcuts" class="block text-gray-400 hover:text-white py-2">Atalhos</a>
+        <a href="https://tyagoalves.github.io/reverseaffinite/documentation" class="block text-gray-400 hover:text-white py-2">Documentação</a>
+        <a href="https://github.com/TyagoAlves/reverseaffinite" class="block text-gray-400 hover:text-white py-2">GitHub</a>
+        <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="block bg-gradient-to-r from-orange-500 to-cyan-500 text-white px-4 py-2 rounded-xl font-semibold text-center">Download</a>
       </div>
     </div>
   </nav>
 
-  <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 grid-pattern">
-    <div class="hero-glow top-[-200px] left-[-200px]"></div>
-    <div class="hero-glow-cyan bottom-[-200px] right-[-200px]"></div>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-      <div class="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-4 py-1.5 text-sm text-orange-400 mb-8">
-        <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
-        Open Source &bull; Python/PyQt5 &bull; Linux
+  <!-- HERO -->
+  <section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 grid-pattern">
+    <div class="hero-glow hero-glow-1"></div>
+    <div class="hero-glow hero-glow-2"></div>
+    <div class="hero-glow hero-glow-3"></div>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+      <div class="animate-in" style="animation-delay: 0.1s">
+        <div class="badge mb-8">
+          <span class="dot"></span>
+          Open Source &bull; Python/PyQt5 &bull; Linux
+        </div>
       </div>
-      <h1 class="text-5xl md:text-7xl font-bold leading-tight mb-6">
-        O melhor editor<br>
-        <span class="gradient-text">de imagens para Linux</span>
+
+      <h1 class="animate-in text-5xl sm:text-6xl md:text-8xl font-black leading-[1.05] mb-8" style="animation-delay: 0.2s">
+        Made for<br>
+        <span class="gradient-text">your creative era.</span>
       </h1>
-      <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+
+      <p class="animate-in text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed" style="animation-delay: 0.3s">
         15+ ferramentas profissionais, camadas com 12 modos de mesclagem, filtros em tempo real,
-        seleções precisas e engine C++ em desenvolvimento.
-        Tudo open source, nativo Linux.
+        seleções precisas e engine C++ em desenvolvimento. <strong class="text-gray-200">Tudo open source, nativo Linux.</strong>
       </p>
-      <div class="flex flex-wrap justify-center gap-4">
-        <a href="#install" class="bg-gradient-to-r from-orange-500 to-cyan-500 hover:opacity-90 text-white font-bold px-8 py-4 rounded-xl text-lg transition shadow-lg shadow-orange-500/25">
-          <span class="flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Instalar Agora
-          </span>
+
+      <div class="animate-in flex flex-wrap justify-center gap-4" style="animation-delay: 0.4s">
+        <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="group relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white font-bold px-8 py-4 rounded-2xl text-lg transition-all duration-300 shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 flex items-center gap-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download Grátis
         </a>
-        <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" class="border border-gray-700 hover:border-orange-500/50 text-gray-300 font-semibold px-8 py-4 rounded-xl text-lg transition">
-          <span class="flex items-center gap-2">
-            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-            Ver no GitHub
-          </span>
+        <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" class="glass-card text-gray-300 font-semibold px-8 py-4 rounded-2xl text-lg flex items-center gap-3">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          Ver no GitHub
         </a>
       </div>
 
-      <div class="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-3xl mx-auto">
-        <div class="card-hover p-4 rounded-xl border border-gray-800"><div class="text-3xl font-bold text-orange-400">15+</div><div class="text-sm text-gray-500">Ferramentas Profissionais</div></div>
-        <div class="card-hover p-4 rounded-xl border border-gray-800"><div class="text-3xl font-bold text-cyan-400">12</div><div class="text-sm text-gray-500">Modos de Mesclagem</div></div>
-        <div class="card-hover p-4 rounded-xl border border-gray-800"><div class="text-3xl font-bold text-orange-400">100</div><div class="text-sm text-gray-500">Níveis de Undo</div></div>
-        <div class="card-hover p-4 rounded-xl border border-gray-800"><div class="text-3xl font-bold text-cyan-400">136</div><div class="text-sm text-gray-500">Testes Automatizados</div></div>
+      <!-- Stats -->
+      <div class="animate-in mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto" style="animation-delay: 0.5s">
+        <div class="glass-card rounded-2xl p-6">
+          <div class="text-4xl font-black gradient-orange">15+</div>
+          <div class="text-sm text-gray-500 mt-1">Ferramentas</div>
+        </div>
+        <div class="glass-card rounded-2xl p-6">
+          <div class="text-4xl font-black gradient-purple">12</div>
+          <div class="text-sm text-gray-500 mt-1">Blend Modes</div>
+        </div>
+        <div class="glass-card rounded-2xl p-6">
+          <div class="text-4xl font-black gradient-orange">100</div>
+          <div class="text-sm text-gray-500 mt-1">Undo Levels</div>
+        </div>
+        <div class="glass-card rounded-2xl p-6">
+          <div class="text-4xl font-black gradient-cyan">136</div>
+          <div class="text-sm text-gray-500 mt-1">Testes</div>
+        </div>
       </div>
     </div>
   </section>
 
-  <section id="install" class="py-24 bg-gray-900/30">
+  <!-- FEATURES -->
+  <section id="features" class="py-32 relative">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <span class="text-orange-400 text-sm font-semibold uppercase tracking-wider">Instalação</span>
-        <h2 class="text-4xl font-bold mt-3">Pronto em segundos</h2>
-        <p class="text-gray-400 mt-4 max-w-2xl mx-auto">Python, PyQt5 e numpy são as únicas dependências.</p>
+      <div class="text-center mb-20">
+        <div class="badge justify-center mb-6">Recursos</div>
+        <h2 class="text-4xl sm:text-5xl font-black mb-4">Tudo que você precisa<br>para <span class="gradient-text">editar como um profissional</span></h2>
+        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Do brush ao pen tool, das camadas aos filtros — cada ferramenta foi feita para ser rápida, intuitiva e poderosa.</p>
       </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div class="glass-card rounded-2xl p-8">
+          <div class="feature-icon bg-orange-500/10 text-orange-400 mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+          </div>
+          <h3 class="text-lg font-bold mb-3">15+ Ferramentas Profissionais</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Move, Brush, Eraser, Pen (Bezier), Gradient, Shape, Text, Clone Stamp, Healing Brush, Crop, e mais. Cada ferramenta com atalho de tecla única.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-8">
+          <div class="feature-icon bg-purple-500/10 text-purple-400 mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold mb-3">Camadas + Blend Modes</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">12 modos de mesclagem (Normal, Multiply, Screen, Overlay, etc.), opacidade, visibilidade, máscaras e grupos. Tudo não-destrutivo.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-8">
+          <div class="feature-icon bg-cyan-500/10 text-cyan-400 mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold mb-3">Seleções Precisas</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Retangular, Elíptica, Lasso, Varinha Mágica — com marching ants, máscaras de seleção, feather e modos de adição/subtração.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-8">
+          <div class="feature-icon bg-orange-500/10 text-orange-400 mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </div>
+          <h3 class="text-lg font-bold mb-3">Filtros em Tempo Real</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Blur, Sharpen, Edge Detect, Pixelate, Posterize, Grayscale, Invert, Sepia. Ajustes não-destrutivos com camadas de ajuste.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-8">
+          <div class="feature-icon bg-purple-500/10 text-purple-400 mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold mb-3">Pen / Bezier Completo</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Curvas cúbicas com handles de controle. Adição/remoção de pontos âncora, path editing — como no Illustrator ou Affinity Designer.</p>
+        </div>
+
+        <div class="glass-card rounded-2xl p-8">
+          <div class="feature-icon bg-cyan-500/10 text-cyan-400 mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 class="text-lg font-bold mb-3">Undo/Redo Ilimitado</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">100 níveis de histórico com preview visual no History Panel. Snapshots completos para retroceder qualquer operação.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SHORTCUTS -->
+  <section id="shortcuts" class="py-32 relative border-t border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-20">
+        <div class="badge justify-center mb-6">Atalhos</div>
+        <h2 class="text-4xl sm:text-5xl font-black mb-4">Layout <span class="gradient-text">Profissional</span></h2>
+        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Paleta de ferramentas à esquerda, painéis à direita — como no Affinity Photo e Photoshop. Cada ferramenta com atalho de tecla única.</p>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-12 max-w-5xl mx-auto items-start">
+        <div class="glass rounded-2xl p-6 font-mono text-xs leading-relaxed overflow-x-auto">
+          <pre class="text-gray-400">
+┌──────────────────────────────────────────┐
+│ [File] [Edit] [Layer] [Filter] [View]    │
+├──────┬──────────────────┬───────────────┤
+│      │                  │  Navigator    │
+│  V   │                  │  Layers       │
+│  M   │     CANVAS       │  Color        │
+│  B   │                  │  History      │
+│  P   │                  │  Gradients    │
+│  G   │   X:500 Y:300    │               │
+├──────┴──────────────────┴───────────────┤
+│ Status: Ready          R:255 G:128 B:64 │
+└──────────────────────────────────────────┘
+          </pre>
+        </div>
+
+        <div>
+          <div class="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">V</div><div class="text-[11px] text-gray-500">Move</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">M</div><div class="text-[11px] text-gray-500">Select</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">L</div><div class="text-[11px] text-gray-500">Lasso</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-cyan mb-0.5">W</div><div class="text-[11px] text-gray-500">Wand</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">B</div><div class="text-[11px] text-gray-500">Brush</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">E</div><div class="text-[11px] text-gray-500">Eraser</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">P</div><div class="text-[11px] text-gray-500">Pen</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-cyan mb-0.5">G</div><div class="text-[11px] text-gray-500">Gradient</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">S</div><div class="text-[11px] text-gray-500">Shape</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">T</div><div class="text-[11px] text-gray-500">Text</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">C</div><div class="text-[11px] text-gray-500">Clone</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-cyan mb-0.5">H</div><div class="text-[11px] text-gray-500">Healing</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">O</div><div class="text-[11px] text-gray-500">Crop</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">I</div><div class="text-[11px] text-gray-500">Picker</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">Z</div><div class="text-[11px] text-gray-500">Zoom</div></div>
+          </div>
+          <p class="text-gray-600 text-xs mt-5 text-center">Atalhos estilo Photoshop — zero necessidade de mouse para trocar ferramentas</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section id="install" class="py-32 relative border-t border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-20">
+        <div class="badge justify-center mb-6">Instalação</div>
+        <h2 class="text-4xl sm:text-5xl font-black mb-4">Pronto em <span class="gradient-text">segundos</span></h2>
+        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Python, PyQt5 e numpy são as únicas dependências. 3 comandos e você está editando.</p>
+      </div>
+
       <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <h3 class="text-lg font-semibold mb-4 flex items-center gap-2"><span class="text-orange-400">&#9654;</span> Python (PyQt5)</h3>
+        <div class="glass-card rounded-2xl p-8">
+          <div class="flex items-center gap-3 mb-6">
+            <span class="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold">&#9654;</span>
+            <h3 class="text-lg font-bold">Python (PyQt5)</h3>
+          </div>
           <div class="code-block text-sm">
             <span class="prompt">$</span> <span class="cmd">git clone https://github.com/TyagoAlves/reverseaffinite.git</span><br>
             <span class="prompt">$</span> <span class="cmd">cd reverseaffinite</span><br>
@@ -134,180 +310,106 @@
             <span class="output">&#10003; reverseaffinite Photo — pronto!</span>
           </div>
         </div>
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <h3 class="text-lg font-semibold mb-4 flex items-center gap-2"><span class="text-cyan-400">&#9889;</span> C++ Engine (Qt5/OpenGL)</h3>
+
+        <div class="glass-card rounded-2xl p-8">
+          <div class="flex items-center gap-3 mb-6">
+            <span class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold">&#9889;</span>
+            <h3 class="text-lg font-bold">C++ Engine (Qt5/OpenGL)</h3>
+          </div>
           <div class="code-block text-sm">
             <span class="prompt">$</span> <span class="cmd">cd reverseaffinite/cpp_editor</span><br>
             <span class="prompt">$</span> <span class="cmd">chmod +x build.sh</span><br>
             <span class="prompt">$</span> <span class="cmd">./build.sh</span><br>
             <span class="output">&#10003; C++ engine compiled — ~104 KB binary</span>
           </div>
-          <p class="text-gray-500 text-xs mt-3">Requer Qt5 (download automático via aqtinstall).</p>
+          <p class="text-gray-600 text-xs mt-4">Requer Qt5 (download automático via aqtinstall) e CMake.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="features" class="py-24 relative">
+  <!-- ARCHITECTURE -->
+  <section id="architecture" class="py-32 relative border-t border-white/5">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <span class="text-orange-400 text-sm font-semibold uppercase tracking-wider">Recursos</span>
-        <h2 class="text-4xl font-bold mt-3">Tudo que você precisa<br>para editar como um profissional</h2>
+      <div class="text-center mb-20">
+        <div class="badge justify-center mb-6">Arquitetura</div>
+        <h2 class="text-4xl sm:text-5xl font-black mb-4">Dual Engine</h2>
+        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Python/PyQt5 para prototipação rápida, C++/Qt5/OpenGL para performance de produção.</p>
       </div>
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <div class="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400 mb-5">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+
+      <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div class="glass-card rounded-2xl p-8">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
+            <span class="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">&#128013;</span>
+            Python Engine
+          </h3>
+          <div class="space-y-3 text-sm text-gray-400">
+            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> Interface completa com PyQt5</div>
+            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> 15+ ferramentas com atalhos profissionais</div>
+            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> Blend modes via NumPy (SIMD-ready)</div>
+            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> Histórico de 100 níveis com snapshots</div>
+            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> 136 testes automatizados</div>
           </div>
-          <h3 class="text-lg font-semibold mb-3">15+ Ferramentas Profissionais</h3>
-          <p class="text-gray-400 text-sm">Move, Brush, Eraser, Pen (Bezier), Gradient, Shape, Text, Clone Stamp, Healing Brush, Crop, e mais. Cada ferramenta com atalho de tecla única.</p>
         </div>
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-5">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+
+        <div class="glass-card rounded-2xl p-8">
+          <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
+            <span class="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">&#9889;</span>
+            C++ Engine
+          </h3>
+          <div class="space-y-3 text-sm text-gray-400">
+            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Pipeline de renderização OpenGL</div>
+            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Pixel ops com SSE2 (128-bit SIMD)</div>
+            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Qt5 com OpenGL canvas</div>
+            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Binário ~104 KB otimizado</div>
+            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Build via aqtinstall + CMake</div>
           </div>
-          <h3 class="text-lg font-semibold mb-3">Camadas + 12 Blend Modes</h3>
-          <p class="text-gray-400 text-sm">Sistema completo de camadas com modos de mesclagem (Normal, Multiply, Screen, Overlay, etc.), opacidade, visibilidade, máscaras e grupos.</p>
-        </div>
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <div class="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400 mb-5">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-          </div>
-          <h3 class="text-lg font-semibold mb-3">Seleções Precisas</h3>
-          <p class="text-gray-400 text-sm">Retangular, Elíptica, Lasso, Varinha Mágica — com "marching ants", máscaras de seleção e modos de adição/subtração.</p>
-        </div>
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-5">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-          </div>
-          <h3 class="text-lg font-semibold mb-3">Filtros em Tempo Real</h3>
-          <p class="text-gray-400 text-sm">Galeria de filtros: Blur, Sharpen, Edge Detect, Pixelate, Posterize, Grayscale, Invert, Sepia. Ajustes não-destrutivos com camadas de ajuste.</p>
-        </div>
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <div class="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400 mb-5">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-          </div>
-          <h3 class="text-lg font-semibold mb-3">Pen / Bezier</h3>
-          <p class="text-gray-400 text-sm">Curvas cúbicas com handles de controle. Adição/remoção de pontos âncora, path editing completo — como no Illustrator ou Affinity Designer.</p>
-        </div>
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <div class="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 mb-5">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          </div>
-          <h3 class="text-lg font-semibold mb-3">Undo/Redo Ilimitado</h3>
-          <p class="text-gray-400 text-sm">100 níveis de histórico com preview visual no History Panel. Snapshots completos das camadas para retroceder qualquer operação.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <section class="py-24 bg-gray-900/30">
+  <!-- CTA -->
+  <section class="py-32 relative border-t border-white/5">
+    <div class="hero-glow hero-glow-1" style="top: -200px; left: -200px;"></div>
+    <div class="max-w-4xl mx-auto px-4 text-center relative z-10">
+      <h2 class="text-5xl sm:text-6xl font-black mb-6">Pronto para <span class="gradient-text">editar?</span></h2>
+      <p class="text-gray-400 text-xl mb-10 max-w-2xl mx-auto">Clone, instale as dependências e comece a editar em segundos. <strong class="text-gray-200">100% open source, 100% gratuito.</strong></p>
+      <div class="flex flex-wrap justify-center gap-4">
+        <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="group relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white font-bold px-10 py-5 rounded-2xl text-lg transition-all duration-300 shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 inline-flex items-center gap-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download Grátis
+        </a>
+        <a href="https://tyagoalves.github.io/reverseaffinite/documentation" class="glass-card text-gray-300 font-semibold px-10 py-5 rounded-2xl text-lg inline-flex items-center gap-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          Documentação
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-white/5 py-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <span class="text-orange-400 text-sm font-semibold uppercase tracking-wider">Atalhos</span>
-        <h2 class="text-4xl font-bold mt-3">Layout Profissional</h2>
-        <p class="text-gray-400 mt-4 max-w-2xl mx-auto">Paleta de ferramentas à esquerda, painéis à direita — como no Affinity Photo e Photoshop.</p>
-      </div>
-      <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-        <div>
-          <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 font-mono text-xs leading-relaxed overflow-x-auto">
-            <pre class="text-gray-400">
-┌─────────────────────────────────────────┐
-│ [File] [Edit] [Layer] [Filter] [View]   │
-├──────┬──────────────────┬──────────────┤
-│      │                  │  Navigator   │
-│  V   │                  │  Layers      │
-│  M   │     CANVAS       │  Color       │
-│  B   │                  │  History     │
-│  P   │                  │              │
-│  G   │   X:500 Y:300    │              │
-├──────┴──────────────────┴──────────────┤
-│ Status: Ready          R:255 G:128 B:64│
-└─────────────────────────────────────────┘
-            </pre>
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10">
+        <div class="flex items-center gap-3">
+          <span class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 via-purple-500 to-cyan-500 flex items-center justify-center text-white font-bold">RA</span>
+          <div>
+            <span class="font-bold text-lg">reverse<span class="text-orange-400">affinite</span></span>
+            <p class="text-gray-600 text-xs mt-0.5">Editor de imagens open source para Linux</p>
           </div>
         </div>
-        <div>
-          <div class="grid grid-cols-3 sm:grid-cols-5 gap-2">
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-orange-400">V</div><div class="text-xs text-gray-500">Move</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-cyan-400">M</div><div class="text-xs text-gray-500">Select</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-orange-400">L</div><div class="text-xs text-gray-500">Lasso</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-cyan-400">W</div><div class="text-xs text-gray-500">Wand</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-orange-400">B</div><div class="text-xs text-gray-500">Brush</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-cyan-400">E</div><div class="text-xs text-gray-500">Eraser</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-orange-400">P</div><div class="text-xs text-gray-500">Pen</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-cyan-400">G</div><div class="text-xs text-gray-500">Gradient</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-orange-400">S</div><div class="text-xs text-gray-500">Shape</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-cyan-400">T</div><div class="text-xs text-gray-500">Text</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-orange-400">C</div><div class="text-xs text-gray-500">Clone</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-cyan-400">H</div><div class="text-xs text-gray-500">Healing</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-orange-400">O</div><div class="text-xs text-gray-500">Crop</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-cyan-400">I</div><div class="text-xs text-gray-500">Picker</div></div>
-            <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center card-hover"><div class="text-xl font-bold text-orange-400">Z</div><div class="text-xs text-gray-500">Zoom</div></div>
-          </div>
-          <p class="text-gray-500 text-xs mt-4 text-center">Cada ferramenta tem atalho de tecla única como no Photoshop</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="py-24 relative">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-16">
-        <span class="text-orange-400 text-sm font-semibold uppercase tracking-wider">Arquitetura</span>
-        <h2 class="text-4xl font-bold mt-3">Dual Engine</h2>
-        <p class="text-gray-400 mt-4 max-w-2xl mx-auto">Python/PyQt5 para prototipação rápida, C++/Qt5/OpenGL para performance de produção.</p>
-      </div>
-      <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <h3 class="text-lg font-semibold mb-4 text-orange-400">&#128013; Python Engine</h3>
-          <ul class="text-gray-400 text-sm space-y-2">
-            <li class="flex items-start gap-2"><span class="text-cyan-400 mt-1">&#9656;</span> Interface completa com PyQt5</li>
-            <li class="flex items-start gap-2"><span class="text-cyan-400 mt-1">&#9656;</span> 15+ ferramentas com atalhos profissionais</li>
-            <li class="flex items-start gap-2"><span class="text-cyan-400 mt-1">&#9656;</span> Blend modes via NumPy (SIMD-ready)</li>
-            <li class="flex items-start gap-2"><span class="text-cyan-400 mt-1">&#9656;</span> Histórico de 100 níveis com snapshots</li>
-            <li class="flex items-start gap-2"><span class="text-cyan-400 mt-1">&#9656;</span> 136 testes automatizados</li>
-          </ul>
-        </div>
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-8 card-hover">
-          <h3 class="text-lg font-semibold mb-4 text-cyan-400">&#9889; C++ Engine</h3>
-          <ul class="text-gray-400 text-sm space-y-2">
-            <li class="flex items-start gap-2"><span class="text-orange-400 mt-1">&#9656;</span> Pipeline de renderização OpenGL</li>
-            <li class="flex items-start gap-2"><span class="text-orange-400 mt-1">&#9656;</span> Pixel ops com SSE2 (128-bit SIMD)</li>
-            <li class="flex items-start gap-2"><span class="text-orange-400 mt-1">&#9656;</span> Qt5 com OpenGL canvas</li>
-            <li class="flex items-start gap-2"><span class="text-orange-400 mt-1">&#9656;</span> Binário ~104 KB otimizado</li>
-            <li class="flex items-start gap-2"><span class="text-orange-400 mt-1">&#9656;</span> Build via aqtinstall + CMake</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="py-24 bg-orange-500/5 border-t border-gray-800">
-    <div class="max-w-4xl mx-auto px-4 text-center">
-      <h2 class="text-4xl font-bold mb-6">Pronto para editar?</h2>
-      <p class="text-gray-400 mb-8 max-w-2xl mx-auto">Clone, instale as dependências e comece a editar em segundos. 100% open source, 100% Linux.</p>
-      <a href="#install" class="bg-gradient-to-r from-orange-500 to-cyan-500 hover:opacity-90 text-white font-bold px-8 py-4 rounded-xl text-lg transition shadow-lg shadow-orange-500/25 inline-block">
-        Instalar Agora
-      </a>
-    </div>
-  </section>
-
-  <footer class="border-t border-gray-800 py-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex flex-col md:flex-row justify-between items-center gap-6">
-        <div class="flex items-center gap-2">
-          <span class="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm">RA</span>
-          <span class="font-semibold">reverse<span class="text-orange-400">affinite</span></span>
-        </div>
-        <div class="flex items-center gap-6 text-sm text-gray-500">
-          <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" class="hover:text-gray-300 transition">GitHub</a>
+        <div class="flex flex-wrap items-center gap-6 text-sm text-gray-500">
+          <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" class="hover:text-gray-300 transition flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            GitHub
+          </a>
           <a href="https://github.com/TyagoAlves/reverseaffinite/issues" target="_blank" class="hover:text-gray-300 transition">Reportar Bug</a>
-          <a href="/reverseaffinite/documentation" class="hover:text-gray-300 transition">Documentação</a>
-          <span>MIT License</span>
+          <a href="https://tyagoalves.github.io/reverseaffinite/documentation" class="hover:text-gray-300 transition">Documentação</a>
+          <span class="text-gray-600">MIT License</span>
         </div>
       </div>
-      <div class="text-center text-gray-600 text-xs mt-8">
+      <div class="border-t border-white/5 pt-8 text-center text-sm text-gray-600">
         Inspirado por Affinity Photo, Adobe Photoshop e DaVinci Resolve. Nenhum código proprietário foi usado.
       </div>
     </div>
@@ -320,8 +422,20 @@
         const id = a.getAttribute('href').slice(1);
         const el = document.getElementById(id);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        document.getElementById('mobile-menu')?.classList.add('hidden');
+        document.getElementById('mobileMenu')?.classList.add('hidden');
       });
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.animationPlayState = 'running';
+        }
+      });
+    });
+    document.querySelectorAll('.animate-in').forEach(el => {
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
     });
   </script>
 
