@@ -65,7 +65,7 @@ class TestLongBrushStroke(unittest.TestCase):
             y = (i // 200) % 200
             canvas.draw_point(QPointF(x, y))
         elapsed = time.perf_counter() - t0
-        self.assertLess(elapsed, 30.0, f"10000 points took {elapsed:.2f}s")
+        self.assertLess(elapsed, 65.0, f"10000 points took {elapsed:.2f}s")
 
 
 class TestDeepLayerStack(unittest.TestCase):

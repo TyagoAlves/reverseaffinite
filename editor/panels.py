@@ -1,3 +1,4 @@
+import os
 import time
 from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer, QRect, QPoint
 from PyQt5.QtGui import (
@@ -15,6 +16,7 @@ from PyQt5.QtWidgets import (
 
 from .layers import BLEND_MODES, AdjustmentLayer, GroupLayer, Layer
 from .i18n import _, get_translator
+from .brushengine import load_preset, save_preset, list_presets, PRESET_DIR
 
 
 class ColorSwatch(QPushButton):
@@ -927,7 +929,10 @@ class HistoryPanel(QWidget):
         layout.addWidget(self.count_label)
 
         self.list_widget = QListWidget()
+        self.list_widget.setIconSize(QSize(48, 48))
         self.list_widget.currentRowChanged.connect(self._row_changed)
+        self.list_widget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self._show_context_menu)
         layout.addWidget(self.list_widget)
 
     def refresh(self):
@@ -941,6 +946,9 @@ class HistoryPanel(QWidget):
         for i, entry in enumerate(history.stack):
             item = QListWidgetItem(entry.description)
             item.setData(Qt.UserRole, i)
+            thumb = entry.get_thumbnail()
+            if thumb:
+                item.setIcon(QIcon(thumb))
             self.list_widget.addItem(item)
         if 0 <= history.index < self.list_widget.count():
             self.list_widget.setCurrentRow(history.index)
@@ -957,6 +965,25 @@ class HistoryPanel(QWidget):
         if row != history.index:
             history.jump_to(canvas.layer_stack, row)
             canvas._refresh()
+
+    def _show_context_menu(self, pos):
+        item = self.list_widget.itemAt(pos)
+        if not item:
+            return
+        idx = item.data(Qt.UserRole)
+        canvas = self.get_canvas()
+        if not canvas or not canvas.history:
+            return
+        menu = QMenu(self)
+        del_action = menu.addAction(_("Delete Entry"))
+        clear_action = menu.addAction(_("Clear History"))
+        action = menu.exec_(self.list_widget.viewport().mapToGlobal(pos))
+        if action == del_action:
+            canvas.history.delete_entry(idx)
+            self.refresh()
+        elif action == clear_action:
+            canvas.history.clear()
+            self.refresh()
 
     def set_canvas(self, canvas_getter):
         self.get_canvas = canvas_getter
@@ -1093,7 +1120,31 @@ class BrushPanel(QWidget):
         self.preview_label.setStyleSheet("border: 1px solid #555; border-radius: 4px;")
         layout.addWidget(self.preview_label)
 
+        sep = QFrame()
+        sep.setFrameShape(QFrame.HLine)
+        sep.setStyleSheet("color: #333;")
+        layout.addWidget(sep)
+
+        preset_header = QLabel("Presets:")
+        preset_header.setStyleSheet("font-weight: bold; color: #aaa;")
+        layout.addWidget(preset_header)
+
+        self.preset_list = QListWidget()
+        self.preset_list.setFixedHeight(80)
+        self.preset_list.currentRowChanged.connect(self._preset_selected)
+        layout.addWidget(self.preset_list)
+
+        preset_btn_row = QHBoxLayout()
+        self.save_preset_btn = QPushButton("Save")
+        self.save_preset_btn.clicked.connect(self._save_preset)
+        preset_btn_row.addWidget(self.save_preset_btn)
+        self.delete_preset_btn = QPushButton("Delete")
+        self.delete_preset_btn.clicked.connect(self._delete_preset)
+        preset_btn_row.addWidget(self.delete_preset_btn)
+        layout.addLayout(preset_btn_row)
+
         self._brush_engine = None
+        self._refresh_preset_list()
 
     def set_brush_engine(self, engine):
         self._brush_engine = engine
@@ -1121,6 +1172,68 @@ class BrushPanel(QWidget):
             return
         pix = self._brush_engine.make_preview(60)
         self.preview_label.setPixmap(pix)
+
+    def _current_settings(self):
+        return {
+            "tip": self.tip_combo.currentText(),
+            "hardness": self.hardness_slider.value() / 100.0,
+            "spacing": self.spacing_slider.value() / 100.0,
+            "flow": self.flow_slider.value() / 100.0,
+        }
+
+    def _apply_settings(self, data):
+        self.tip_combo.blockSignals(True)
+        self.hardness_slider.blockSignals(True)
+        self.spacing_slider.blockSignals(True)
+        self.flow_slider.blockSignals(True)
+        idx = self.tip_combo.findText(data.get("tip", "Circle"))
+        if idx >= 0:
+            self.tip_combo.setCurrentIndex(idx)
+        self.hardness_slider.setValue(int(data.get("hardness", 1.0) * 100))
+        self.spacing_slider.setValue(int(data.get("spacing", 0.25) * 100))
+        self.flow_slider.setValue(int(data.get("flow", 1.0) * 100))
+        self.tip_combo.blockSignals(False)
+        self.hardness_slider.blockSignals(False)
+        self.spacing_slider.blockSignals(False)
+        self.flow_slider.blockSignals(False)
+        self._on_change()
+
+    def _refresh_preset_list(self):
+        self.preset_list.blockSignals(True)
+        self.preset_list.clear()
+        for name in list_presets():
+            self.preset_list.addItem(name)
+        self.preset_list.blockSignals(False)
+
+    def _preset_selected(self, row):
+        if row < 0:
+            return
+        name = self.preset_list.item(row).text()
+        data = load_preset(name)
+        if data:
+            self._apply_settings(data)
+
+    def _save_preset(self):
+        name, ok = QInputDialog.getText(self, "Save Preset", "Preset name:")
+        if ok and name:
+            data = self._current_settings()
+            data["name"] = name
+            save_preset(name, data)
+            self._refresh_preset_list()
+            for i in range(self.preset_list.count()):
+                if self.preset_list.item(i).text() == name:
+                    self.preset_list.setCurrentRow(i)
+                    break
+
+    def _delete_preset(self):
+        row = self.preset_list.currentRow()
+        if row < 0:
+            return
+        name = self.preset_list.item(row).text()
+        preset_path = os.path.join(PRESET_DIR, name + ".json")
+        if os.path.exists(preset_path):
+            os.remove(preset_path)
+        self._refresh_preset_list()
 
 
 class PathPanel(QWidget):

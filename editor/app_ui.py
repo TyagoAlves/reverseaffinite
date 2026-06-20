@@ -918,6 +918,7 @@ class MainWindow(QMainWindow):
         view_m.addAction(_("Zoom &In"), self.canvas.zoom_in, QKeySequence("Ctrl++"))
         view_m.addAction(_("Zoom &Out"), self.canvas.zoom_out, QKeySequence("Ctrl+-"))
         view_m.addAction(_("Zoom to &100%"), self.canvas.zoom_100, QKeySequence("Ctrl+1"))
+        view_m.addAction(_("Zoom to &Selection"), self.canvas.zoom_to_selection, QKeySequence("Ctrl+2"))
         view_m.addAction(_("&Fit to Screen"), self.canvas.zoom_fit, QKeySequence("Ctrl+0"))
         view_m.addSeparator()
 

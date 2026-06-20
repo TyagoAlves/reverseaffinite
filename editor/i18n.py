@@ -62,6 +62,10 @@ class Translator(QObject):
                     "pt_BR": "Português (Brasil)",
                     "en_US": "English (US)",
                     "es_ES": "Español",
+                    "fr_FR": "Français",
+                    "de_DE": "Deutsch",
+                    "it_IT": "Italiano",
+                    "ja_JP": "日本語",
                 }
                 langs.append((code, names.get(code, code)))
         return langs if langs else [("pt_BR", "Português (Brasil)")]

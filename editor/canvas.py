@@ -267,6 +267,18 @@ class CanvasView(QGraphicsView):
         self.zoom_level = 1.0
         self._apply_zoom()
 
+    def zoom_to_selection(self):
+        if not self.has_selection():
+            return
+        rect = self.selection_path.boundingRect()
+        if rect.isEmpty():
+            return
+        margin = 20
+        rect.adjust(-margin, -margin, margin, margin)
+        self.fitInView(rect, Qt.KeepAspectRatio)
+        self.zoom_level = self.transform().m11()
+        self.zoom_changed.emit(self.zoom_level)
+
     def _apply_zoom(self):
         self.resetTransform()
         self.scale(self.zoom_level, self.zoom_level)
@@ -581,11 +593,15 @@ class CanvasView(QGraphicsView):
         layer = self.layer_stack.active
         if not layer or layer.locked:
             return
-        from PyQt5.QtGui import QLinearGradient
         w, h = layer.image.width(), layer.image.height()
-        grad = QLinearGradient(start, end)
-        grad.setColorAt(0.0, self.tool_color)
-        grad.setColorAt(1.0, self.bg_color)
+        grad_obj = getattr(self, "gradient_obj", None)
+        if grad_obj is not None and grad_obj.stops:
+            grad = grad_obj.to_qgradient(start, end)
+        else:
+            from PyQt5.QtGui import QLinearGradient
+            grad = QLinearGradient(start, end)
+            grad.setColorAt(0.0, self.tool_color)
+            grad.setColorAt(1.0, self.bg_color)
         p = QPainter(layer.image)
         if self.has_selection():
             self._apply_selection_clip(p)
@@ -1092,5 +1108,6 @@ class CanvasView(QGraphicsView):
             elif key == Qt.Key_Minus: self.zoom_out()
             elif key == Qt.Key_0: self.zoom_fit()
             elif key == Qt.Key_1: self.zoom_100()
+            elif key == Qt.Key_2: self.zoom_to_selection()
 
         super().keyPressEvent(event)
