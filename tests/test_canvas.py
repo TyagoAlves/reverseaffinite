@@ -191,5 +191,56 @@ class TestCanvasMoveLayer(unittest.TestCase):
         self.assertFalse(result)
 
 
+class TestCanvasTempSave(unittest.TestCase):
+    def setUp(self):
+        self.canvas = CanvasView()
+        self.canvas.new_image(50, 50, Qt.white)
+        self.canvas.tool_color = QColor(255, 0, 0)
+
+    def test_temp_save_restore(self):
+        self.canvas.draw_point(QPointF(10, 10))
+        self.canvas.temp_save_layer()
+        orig = self.canvas.layer_stack.active.image.copy()
+        self.canvas.draw_point(QPointF(20, 20))
+        self.canvas.temp_restore_layer()
+        restored = self.canvas.layer_stack.active.image
+        self.assertEqual(orig, restored)
+
+    def test_temp_save_no_active_layer(self):
+        self.canvas.layer_stack.layers.clear()
+        self.canvas.temp_save_layer()
+        self.canvas.temp_restore_layer()
+
+    def test_save_state(self):
+        self.canvas._save_state("Test")
+        self.assertTrue(self.canvas.history.can_undo())
+
+    def test_draw_gradient(self):
+        self.canvas.draw_gradient(QPointF(0, 0), QPointF(50, 50))
+        c = self.canvas.get_pixel_color(QPointF(0, 0))
+        self.assertEqual(c, self.canvas.tool_color)
+
+    def test_draw_gradient_locked_layer(self):
+        self.canvas.layer_stack.active.locked = True
+        self.canvas.draw_gradient(QPointF(0, 0), QPointF(50, 50))
+
+    def test_draw_rect_shape(self):
+        self.canvas.tool_size = 2
+        self.canvas.draw_rect_shape(QPointF(5, 5), QPointF(20, 20))
+        c = self.canvas.get_pixel_color(QPointF(5, 5))
+        self.assertEqual(c, self.canvas.tool_color)
+
+    def test_draw_ellipse_shape(self):
+        self.canvas.tool_size = 2
+        self.canvas.draw_ellipse_shape(QPointF(5, 5), QPointF(25, 20))
+        c = self.canvas.get_pixel_color(QPointF(7, 6))
+        self.assertEqual(c, self.canvas.tool_color)
+
+    def test_apply_pixel_op(self):
+        self.canvas._apply_pixel_op(QRect(0, 0, 10, 10), lambda arr: arr)
+        c = self.canvas.get_pixel_color(QPointF(5, 5))
+        self.assertEqual(c, QColor(255, 255, 255))
+
+
 if __name__ == "__main__":
     unittest.main()

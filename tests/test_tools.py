@@ -248,6 +248,79 @@ class TestToolFunctionality(unittest.TestCase):
         c = img.pixelColor(12, 12)
         self.assertNotEqual((c.red(), c.green(), c.blue()), (255, 255, 255))
 
+    def test_shape_tool_ellipse_mode(self):
+        canvas = CanvasView()
+        canvas.new_image(50, 50, Qt.white)
+        canvas.tool_color = QColor(0, 255, 0)
+        canvas.tool_size = 3
+        tool = ShapeTool()
+        tool.shape_mode = "ellipse"
+        tool.press(canvas, QPointF(10, 10), Qt.NoModifier)
+        tool.release(canvas, QPointF(40, 40), Qt.NoModifier)
+        img = canvas.layer_stack.active.image
+        c = img.pixelColor(12, 12)
+        self.assertNotEqual((c.red(), c.green(), c.blue()), (255, 255, 255))
+
+    def test_shape_tool_live_preview_move(self):
+        canvas = CanvasView()
+        canvas.new_image(50, 50, Qt.white)
+        canvas.tool_color = QColor(255, 0, 0)
+        canvas.tool_size = 2
+        tool = ShapeTool()
+        tool.press(canvas, QPointF(5, 5), Qt.NoModifier)
+        tool.move(canvas, QPointF(5, 5), QPointF(30, 30), Qt.NoModifier)
+        tool.release(canvas, QPointF(30, 30), Qt.NoModifier)
+        img = canvas.layer_stack.active.image
+        c = img.pixelColor(6, 6)
+        self.assertNotEqual((c.red(), c.green(), c.blue()), (255, 255, 255))
+
+    def test_crop_tool_handle_detection(self):
+        canvas = CanvasView()
+        canvas.new_image(50, 50, Qt.white)
+        tool = CropTool()
+        tool.press(canvas, QPointF(10, 10), Qt.NoModifier)
+        tool.move(canvas, QPointF(10, 10), QPointF(40, 40), Qt.NoModifier)
+        tool.release(canvas, QPointF(40, 40), Qt.NoModifier)
+        handle = tool._hit_handle(canvas, QPointF(10, 10))
+        self.assertIsNotNone(handle)
+        self.assertIn(handle, ['top_left'])
+        handle2 = tool._hit_handle(canvas, QPointF(25, 10))
+        self.assertIn(handle2, ['top_mid', 'top_mid'])
+        no_handle = tool._hit_handle(canvas, QPointF(25, 25))
+        self.assertIsNone(no_handle)
+
+    def test_crop_tool_apply_and_cancel(self):
+        canvas = CanvasView()
+        canvas.new_image(50, 50, Qt.white)
+        tool = CropTool()
+        tool.press(canvas, QPointF(5, 5), Qt.NoModifier)
+        tool.release(canvas, QPointF(45, 45), Qt.NoModifier)
+        self.assertTrue(canvas.crop_active)
+        tool.apply(canvas)
+        self.assertFalse(canvas.crop_active)
+
+    def test_crop_tool_cancel(self):
+        canvas = CanvasView()
+        canvas.new_image(50, 50, Qt.white)
+        tool = CropTool()
+        tool.press(canvas, QPointF(5, 5), Qt.NoModifier)
+        tool.release(canvas, QPointF(45, 45), Qt.NoModifier)
+        self.assertTrue(canvas.crop_active)
+        tool.cancel(canvas)
+        self.assertFalse(canvas.crop_active)
+
+    def test_gradient_tool_live_preview(self):
+        canvas = CanvasView()
+        canvas.new_image(30, 30, Qt.white)
+        canvas.tool_color = QColor(255, 0, 0)
+        tool = GradientTool()
+        tool.press(canvas, QPointF(0, 0), Qt.NoModifier)
+        tool.move(canvas, QPointF(0, 0), QPointF(15, 15), Qt.NoModifier)
+        tool.release(canvas, QPointF(15, 15), Qt.NoModifier)
+        img = canvas.layer_stack.active.image
+        c = img.pixelColor(0, 0)
+        self.assertNotEqual((c.red(), c.green(), c.blue()), (255, 255, 255))
+
 
 if __name__ == "__main__":
     unittest.main()
