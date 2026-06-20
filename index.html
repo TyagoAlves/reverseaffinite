@@ -38,11 +38,11 @@
     const OS_DOWNLOADS = {
       windows: 'https://raw.githubusercontent.com/TyagoAlves/reverseaffinity/main/getstarted.ps1',
       macos: 'https://github.com/TyagoAlves/reverseaffinity/archive/refs/heads/main.zip',
-      linux: 'https://reverseaffinity-releases.s3.us-east-2.amazonaws.com/reverseaffinity-x86_64.AppImage',
+      linux: 'https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinity-x86_64.AppImage',
     };
     const OS_INSTALL = {
       linux: [
-        { cmd: 'wget -O reverseaffinity.AppImage https://reverseaffinity-releases.s3.us-east-2.amazonaws.com/reverseaffinity-x86_64.AppImage', label: 'Baixar AppImage' },
+        { cmd: 'wget -O reverseaffinity.AppImage https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinity-x86_64.AppImage', label: 'Baixar AppImage' },
         { cmd: 'chmod +x reverseaffinity.AppImage', label: 'Permissão de execução' },
         { cmd: './reverseaffinity.AppImage', label: 'Executar!' },
       ],
@@ -456,7 +456,7 @@
 
       const installCmds = {
         linux: [
-          '<span class="cmd">wget -O reverseaffinity.AppImage https://reverseaffinity-releases.s3.us-east-2.amazonaws.com/reverseaffinity-x86_64.AppImage</span>',
+          '<span class="cmd">wget -O reverseaffinity.AppImage https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinity-x86_64.AppImage</span>',
           '<span class="cmd">chmod +x reverseaffinity.AppImage</span>',
           '<span class="output">&#10003; Agora execute:</span>',
           '<span class="cmd">./reverseaffinity.AppImage</span>',
@@ -482,7 +482,7 @@
       document.getElementById('install-template').innerHTML = installCmds[os].join('<br>');
 
       const links = {
-        linux: 'https://reverseaffinity-releases.s3.us-east-2.amazonaws.com/reverseaffinity-x86_64.AppImage',
+        linux: 'https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinity-x86_64.AppImage',
         windows: 'https://raw.githubusercontent.com/TyagoAlves/reverseaffinity/main/getstarted.ps1',
         macos: 'https://github.com/TyagoAlves/reverseaffinity/archive/refs/heads/main.zip',
       };

@@ -11,7 +11,8 @@ class EffectsMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(_("reverseaffinity Effects - [Untitled Composition]"))
-        self.resize(1600, 900)
+        screen = QApplication.primaryScreen().availableSize()
+        self.resize(int(screen.width() * 0.75), int(screen.height() * 0.8))
         apply_dark_theme(self)
 
         mbar = self.menuBar()

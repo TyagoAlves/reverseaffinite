@@ -42,7 +42,8 @@ class AppCard(QFrame):
     def __init__(self, app_info, parent=None):
         super().__init__(parent)
         self.app_info = app_info
-        self.setFixedSize(280, 220)
+        self.setMinimumSize(260, 200)
+        self.setMaximumSize(320, 260)
         self.setStyleSheet("""
             AppCard {
                 background: #1e1e24;
@@ -85,20 +86,25 @@ class AppCard(QFrame):
         """)
         layout.addWidget(self.open_btn, alignment=Qt.AlignCenter)
 
+    def mousePressEvent(self, event):
+        self.open_app(self.app_info)
+
 
 class HomeWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(_("reverseaffinity Home"))
-        self.resize(900, 650)
+        screen = QApplication.primaryScreen().availableSize()
+        self.resize(int(screen.width() * 0.5), int(screen.height() * 0.55))
+        self.setMinimumSize(700, 450)
         apply_dark_theme(self)
 
         central = QWidget()
         layout = QVBoxLayout(central)
         layout.setAlignment(Qt.AlignCenter)
         layout.setSpacing(20)
+        layout.setContentsMargins(40, 40, 40, 40)
 
-        # Title
         title = QLabel(_("reverseaffinity"))
         title.setAlignment(Qt.AlignCenter)
         title.setStyleSheet("font-size: 36px; font-weight: bold; color: #fff; letter-spacing: 2px;")
@@ -109,7 +115,6 @@ class HomeWindow(QMainWindow):
         subtitle.setStyleSheet("font-size: 16px; color: #888; margin-bottom: 20px;")
         layout.addWidget(subtitle)
 
-        # Cards
         cards_layout = QHBoxLayout()
         cards_layout.setAlignment(Qt.AlignCenter)
         cards_layout.setSpacing(24)
@@ -117,12 +122,10 @@ class HomeWindow(QMainWindow):
         for info in APP_CARDS:
             card = AppCard(info)
             card.open_btn.clicked.connect(lambda checked, i=info: self.open_app(i))
-            card.mousePressEvent = lambda e, i=info: self.open_app(i)
             self.cards.append(card)
             cards_layout.addWidget(card)
         layout.addLayout(cards_layout)
 
-        # Version
         ver_label = QLabel(f"v{__version__}")
         ver_label.setAlignment(Qt.AlignCenter)
         ver_label.setStyleSheet("color: #555; font-size: 11px; margin-top: 20px;")
@@ -137,7 +140,6 @@ class HomeWindow(QMainWindow):
         if os.path.exists(script_path):
             subprocess.Popen([sys.executable, script_path])
         else:
-            # Fallback: launch via python -m
             subprocess.Popen([sys.executable, "-m", app_info["module"]])
 
 

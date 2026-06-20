@@ -10,7 +10,7 @@ echo "3) Build AppImage"
 bash "$REPO_DIR/build-appimage.sh" 2>&1
 echo "4) Upload AppImage to S3"
 aws s3 cp "$REPO_DIR/reverseaffinity-x86_64.AppImage" \
-    s3://reverseaffinity-releases/reverseaffinity-x86_64.AppImage 2>&1
+    s3://reverseaffinite-releases/reverseaffinity-x86_64.AppImage 2>&1
 echo "5) Push changes to GitHub"
 git -C "$REPO_DIR" push origin main 2>&1
 echo "=== Sync Complete ==="
