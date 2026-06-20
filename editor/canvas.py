@@ -12,6 +12,9 @@ import numpy as np
 from .layers import LayerStack
 from .history import HistoryManager
 from .tools import SHORTCUT_MAP, PencilTool
+from .guides import GuideManager
+from .snapping import SnappingEngine
+from .settings import SettingsManager
 
 
 class CanvasView(QGraphicsView):
@@ -64,6 +67,9 @@ class CanvasView(QGraphicsView):
         self.selection_timer = QTimer()
         self.selection_timer.timeout.connect(self._march_selection)
         self.selection_timer.start(120)
+        self.guide_mgr = GuideManager()
+        self.snapping = SnappingEngine()
+        self._settings = SettingsManager()
 
         self.pen_path = []
         self.pen_handle_offsets = []
@@ -73,7 +79,7 @@ class CanvasView(QGraphicsView):
 
         self.show_grid = False
         self.show_rulers = True
-        self.snap_to_grid = False
+        self.snap_indicator = None
 
         self.setRenderHint(QPainter.Antialiasing)
         self.setRenderHint(QPainter.SmoothPixmapTransform)
@@ -527,13 +533,31 @@ class CanvasView(QGraphicsView):
             return
         w = int(self.scene.sceneRect().width())
         h = int(self.scene.sceneRect().height())
-        spacing = 50
+        if self._settings:
+            spacing = self._settings.get('grid_spacing', 50)
+            color = QColor(self._settings.get('grid_color', '#808080'))
+            style = self._settings.get('grid_style', 'Lines')
+        else:
+            spacing = 50
+            color = QColor(128, 128, 128)
+            style = 'Lines'
         painter.save()
-        painter.setPen(QPen(QColor(128, 128, 128, 60), 1 / self.zoom_level))
-        for x in range(spacing, w, spacing):
-            painter.drawLine(x, 0, x, h)
-        for y in range(spacing, h, spacing):
-            painter.drawLine(0, y, w, y)
+        painter.setPen(QPen(color, 1 / self.zoom_level))
+        if style == 'Lines':
+            for x in range(spacing, w, spacing):
+                painter.drawLine(x, 0, x, h)
+            for y in range(spacing, h, spacing):
+                painter.drawLine(0, y, w, y)
+        elif style == 'Dots':
+            for x in range(spacing, w, spacing):
+                for y in range(spacing, h, spacing):
+                    painter.drawPoint(x, y)
+        elif style == 'Crosses':
+            s = 4 / self.zoom_level
+            for x in range(spacing, w, spacing):
+                for y in range(spacing, h, spacing):
+                    painter.drawLine(x - s, y, x + s, y)
+                    painter.drawLine(x, y - s, x, y + s)
         painter.restore()
 
     def draw_rulers(self, painter):
@@ -551,7 +575,7 @@ class CanvasView(QGraphicsView):
         painter.setPen(QColor(180, 180, 180))
         font = QFont("monospace", 7)
         painter.setFont(font)
-        spacing = 50
+        spacing = self._settings.get('grid_spacing', 50) if self._settings else 50
         for x in range(spacing, w, spacing):
             painter.drawLine(x, ruler_size - 4, x, ruler_size)
             painter.drawText(x + 2, ruler_size - 2, str(x))
@@ -617,6 +641,31 @@ class CanvasView(QGraphicsView):
             painter.drawRect(QRectF(pt.x() - hs / 2, pt.y() - hs / 2, hs, hs))
         painter.restore()
 
+    def _snap_point(self, pos):
+        if not hasattr(self, 'snapping'):
+            return pos, None
+        grid_spacing = self._settings.get('grid_spacing', 50) if self._settings else 50
+        guides = self.guide_mgr.guides if self.guide_mgr else []
+        return self.snapping.snap_point(pos, guides=guides, grid_spacing=grid_spacing)
+
+    def _show_snap_indicator(self, pos, text):
+        self.snap_indicator = (pos, text)
+
+    def draw_snap_indicator(self, painter):
+        if self.snap_indicator is None:
+            return
+        pos, text = self.snap_indicator
+        painter.save()
+        painter.setPen(QPen(QColor(255, 255, 0, 200), 1, Qt.DashLine))
+        painter.setBrush(QBrush(QColor(255, 255, 0, 30)))
+        hs = 4.0 / self.zoom_level
+        painter.drawRect(QRectF(pos.x() - hs, pos.y() - hs, hs * 2, hs * 2))
+        painter.setPen(QColor(255, 255, 0, 200))
+        font = QFont("monospace", 8)
+        painter.setFont(font)
+        painter.drawText(pos.x() + hs + 2, pos.y() - hs - 2, text)
+        painter.restore()
+
     def draw_overlay(self, painter):
         self.draw_grid(painter)
         self.draw_selection_overlay(painter)
@@ -624,6 +673,8 @@ class CanvasView(QGraphicsView):
         self.draw_lasso(painter)
         self.draw_pen_path(painter)
         self.draw_crop_overlay(painter)
+        self.guide_mgr.draw(painter, self.pixmap_item.pixmap().size())
+        self.draw_snap_indicator(painter)
 
     def drawForeground(self, painter, rect):
         self.draw_overlay(painter)
@@ -662,6 +713,14 @@ class CanvasView(QGraphicsView):
                 return
         event.ignore()
 
+    def _ruler_hit_test(self, view_pos):
+        ruler_size = 20
+        if view_pos.x() < ruler_size:
+            return Qt.Vertical
+        if view_pos.y() < ruler_size:
+            return Qt.Horizontal
+        return None
+
     def mousePressEvent(self, event):
         if event.button() == Qt.RightButton:
             from .tools import PenTool
@@ -669,12 +728,32 @@ class CanvasView(QGraphicsView):
                 self.tool.finalize(self)
             return
         if event.button() == Qt.LeftButton:
+            view_pos = event.pos()
+            ruler_orientation = self._ruler_hit_test(view_pos)
+            if ruler_orientation is not None:
+                pos = self.mapToScene(view_pos)
+                if not self.guide_mgr.locked:
+                    gi = self.guide_mgr.hit_test(pos, 8.0 / self.zoom_level)
+                    if gi >= 0:
+                        self.dragging_guide_index = gi
+                        self.ruler_dragging_guide = True
+                        self.ruler_drag_orientation = self.guide_mgr.guides[gi].orientation
+                        self.ruler_drag_pos = pos.x() if self.ruler_drag_orientation == Qt.Vertical else pos.y()
+                    else:
+                        self.ruler_dragging_guide = True
+                        self.ruler_drag_orientation = ruler_orientation
+                        self.ruler_drag_pos = pos.x() if ruler_orientation == Qt.Vertical else pos.y()
+                return
             self.drawing = True
-            pos = self.mapToScene(event.pos())
-            self.last_point = pos
+            pos = self.mapToScene(view_pos)
+            sn_pos, snap_info = self._snap_point(pos)
+            self.last_point = sn_pos
             mods = int(event.modifiers())
             self._save_state(f"{self.tool.name if hasattr(self.tool, 'name') else 'Tool'}")
-            self.tool.press(self, pos, mods)
+            self.tool.press(self, sn_pos, mods)
+            if snap_info:
+                self._show_snap_indicator(snap_info[0], snap_info[1])
+                self.status_changed.emit(f"Snap to {snap_info[1]}")
         elif event.button() == Qt.MiddleButton:
             self.setDragMode(QGraphicsView.ScrollHandDrag)
             super().mousePressEvent(event)
@@ -682,17 +761,52 @@ class CanvasView(QGraphicsView):
     def mouseMoveEvent(self, event):
         pos = self.mapToScene(event.pos())
         self.mouse_moved.emit(pos.x(), pos.y())
+        if self.ruler_dragging_guide:
+            self.ruler_drag_pos = pos.x() if self.ruler_drag_orientation == Qt.Vertical else pos.y()
+            self.viewport().update()
+            return
         if self.drawing and self.last_point:
             mods = int(event.modifiers())
-            self.tool.move(self, self.last_point, pos, mods)
-            self.last_point = pos
+            sn_pos, snap_info = self._snap_point(pos)
+            self.tool.move(self, self.last_point, sn_pos, mods)
+            self.last_point = sn_pos
+            if snap_info:
+                self._show_snap_indicator(snap_info[0], snap_info[1])
+                self.status_changed.emit(f"Snap to {snap_info[1]}")
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton and self.drawing:
-            self.drawing = False
-            mods = int(event.modifiers())
-            self.tool.release(self, self.mapToScene(event.pos()), mods)
+        if event.button() == Qt.LeftButton:
+            if self.ruler_dragging_guide:
+                pos = self.mapToScene(event.pos())
+                if self.dragging_guide_index >= 0:
+                    if not self.guide_mgr.locked:
+                        view_pos = event.pos()
+                        ruler_orientation = self._ruler_hit_test(view_pos)
+                        if ruler_orientation is not None:
+                            self.guide_mgr.remove_guide(self.dragging_guide_index)
+                        else:
+                            g = self.guide_mgr.guides[self.dragging_guide_index]
+                            g.position = pos.x() if g.orientation == Qt.Vertical else pos.y()
+                    self.dragging_guide_index = -1
+                else:
+                    pv = pos.x() if self.ruler_drag_orientation == Qt.Vertical else pos.y()
+                    if pv >= 0:
+                        self.guide_mgr.add_guide(self.ruler_drag_orientation, pv)
+                self.ruler_dragging_guide = False
+                self.ruler_drag_orientation = None
+                self.ruler_drag_pos = None
+                self.viewport().update()
+                return
+            if self.drawing:
+                self.drawing = False
+                mods = int(event.modifiers())
+                pos = self.mapToScene(event.pos())
+                sn_pos, snap_info = self._snap_point(pos)
+                self.tool.release(self, sn_pos, mods)
+                if snap_info:
+                    self._show_snap_indicator(snap_info[0], snap_info[1])
+                    self.status_changed.emit(f"Snap to {snap_info[1]}")
         elif event.button() == Qt.MiddleButton:
             self.setDragMode(QGraphicsView.NoDrag)
             event.ignore()

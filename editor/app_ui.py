@@ -1,5 +1,5 @@
 import os
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, QSettings
 from PyQt5.QtGui import QColor, QKeySequence, QFont, QIcon, QFontDatabase, QPixmap
 from PyQt5.QtWidgets import (
     QMainWindow, QAction, QFileDialog, QColorDialog,
@@ -14,6 +14,9 @@ from PyQt5.QtWidgets import (
 from .canvas import CanvasView
 from .panels import ColorPanel, LayerPanel, HistoryPanel, ToolOptionsPanel
 from .tools import TOOL_LIST
+from .settings import SettingsManager
+from .preferences_dialog import PreferencesDialog
+from .resources import apply_dark_theme
 
 
 class ToolPalette(QWidget):
@@ -75,6 +78,42 @@ class ToolPalette(QWidget):
         canvas = self.get_canvas()
         if canvas:
             canvas.set_tool(tool_cls.name)
+
+
+class GuideDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("New Guide")
+        self.resize(280, 120)
+
+        layout = QVBoxLayout(self)
+        self.orientation_combo = QComboBox()
+        self.orientation_combo.addItems(["Horizontal", "Vertical"])
+        layout.addWidget(QLabel("Orientation:"))
+        layout.addWidget(self.orientation_combo)
+
+        self.position_spin = QSpinBox()
+        self.position_spin.setRange(0, 50000)
+        self.position_spin.setValue(100)
+        layout.addWidget(QLabel("Position (px):"))
+        layout.addWidget(self.position_spin)
+
+        btn_layout = QHBoxLayout()
+        ok_btn = QPushButton("OK")
+        cancel_btn = QPushButton("Cancel")
+        btn_layout.addWidget(ok_btn)
+        btn_layout.addWidget(cancel_btn)
+        layout.addLayout(btn_layout)
+
+        self.result_data = None
+        ok_btn.clicked.connect(self._accept)
+        cancel_btn.clicked.connect(self.reject)
+
+    def _accept(self):
+        from PyQt5.QtCore import Qt
+        orient = Qt.Horizontal if self.orientation_combo.currentIndex() == 0 else Qt.Vertical
+        self.result_data = (orient, self.position_spin.value())
+        self.accept()
 
 
 class FilterGalleryDialog(QDialog):
@@ -228,6 +267,172 @@ class FilterGalleryDialog(QDialog):
         dialog.exec_()
 
 
+class ExportDialog(QDialog):
+    def __init__(self, canvas, parent=None):
+        super().__init__(parent)
+        self.canvas = canvas
+        self.setWindowTitle("Export Image")
+        self.resize(450, 300)
+
+        layout = QVBoxLayout(self)
+
+        form = QFormLayout()
+
+        self.format_combo = QComboBox()
+        self.format_combo.addItem("PNG (.png)", '.png')
+        self.format_combo.addItem("JPEG (.jpg)", '.jpg')
+        self.format_combo.addItem("WebP (.webp)", '.webp')
+        self.format_combo.addItem("TIFF (.tiff)", '.tiff')
+        self.format_combo.addItem("BMP (.bmp)", '.bmp')
+        self.format_combo.addItem("Photoshop PSD (.psd)", '.psd')
+        self.format_combo.currentIndexChanged.connect(self._update_options)
+        form.addRow("Format:", self.format_combo)
+
+        self.quality_layout = QVBoxLayout()
+        self.quality_slider = QSlider(Qt.Horizontal)
+        self.quality_slider.setRange(1, 100)
+        self.quality_slider.setValue(95)
+        self.quality_label = QLabel("95")
+        self.quality_slider.valueChanged.connect(lambda v: self.quality_label.setText(str(v)))
+        q_row = QHBoxLayout()
+        q_row.addWidget(self.quality_slider)
+        q_row.addWidget(self.quality_label)
+        self.quality_group = QGroupBox("Quality")
+        self.quality_group.setLayout(q_row)
+        self.quality_layout.addWidget(self.quality_group)
+
+        self.compression_layout = QVBoxLayout()
+        self.compression_slider = QSlider(Qt.Horizontal)
+        self.compression_slider.setRange(0, 9)
+        self.compression_slider.setValue(6)
+        self.compression_label = QLabel("6")
+        self.compression_slider.valueChanged.connect(lambda v: self.compression_label.setText(str(v)))
+        c_row = QHBoxLayout()
+        c_row.addWidget(self.compression_slider)
+        c_row.addWidget(self.compression_label)
+        self.compression_group = QGroupBox("Compression")
+        self.compression_group.setLayout(c_row)
+        self.compression_layout.addWidget(self.compression_group)
+
+        self.tiff_comp_combo = QComboBox()
+        self.tiff_comp_combo.addItems(['none', 'lzw', 'zip'])
+        self.tiff_comp_group = QGroupBox("TIFF Compression")
+        t_row = QHBoxLayout()
+        t_row.addWidget(self.tiff_comp_combo)
+        self.tiff_comp_group.setLayout(t_row)
+        self.compression_layout.addWidget(self.tiff_comp_group)
+
+        self.options_widget = QWidget()
+        opts_layout = QVBoxLayout(self.options_widget)
+        opts_layout.addLayout(self.quality_layout)
+        opts_layout.addLayout(self.compression_layout)
+        form.addRow("Options:", self.options_widget)
+
+        self.path_edit = QLineEdit()
+        browse_btn = QPushButton("Browse...")
+        browse_btn.clicked.connect(self._browse)
+        path_row = QHBoxLayout()
+        path_row.addWidget(self.path_edit)
+        path_row.addWidget(browse_btn)
+        form.addRow("Output:", path_row)
+
+        layout.addLayout(form)
+
+        self.size_label = QLabel("Estimated size: --")
+        layout.addWidget(self.size_label)
+
+        btn_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        btn_box.accepted.connect(self._export)
+        btn_box.rejected.connect(self.reject)
+        layout.addWidget(btn_box)
+
+        self._update_options()
+
+    def _update_options(self):
+        ext = self.format_combo.currentData()
+        opts = get_export_options_for_format(ext)
+
+        has_quality = 'quality' in opts
+        has_compression = 'compression' in opts
+        has_tiff_comp = ext in ('.tiff', '.tif') and 'compression' in opts
+
+        self.quality_group.setVisible(has_quality)
+        self.compression_group.setVisible(has_compression and not has_tiff_comp)
+        self.tiff_comp_group.setVisible(has_tiff_comp)
+        self.options_widget.setVisible(has_quality or has_compression or has_tiff_comp)
+
+        if has_quality:
+            lo, hi, default = opts['quality']
+            self.quality_slider.setRange(lo, hi)
+            self.quality_slider.setValue(default)
+            self.quality_label.setText(str(default))
+
+        if has_compression and not has_tiff_comp:
+            lo, hi, default = opts['compression']
+            self.compression_slider.setRange(lo, hi)
+            self.compression_slider.setValue(default)
+            self.compression_label.setText(str(default))
+
+        self._update_size_estimate()
+
+    def _update_size_estimate(self):
+        composite = self.canvas.layer_stack.composite()
+        w, h = composite.width(), composite.height()
+        bpp = 4
+        ext = self.format_combo.currentData()
+        if ext == '.jpg':
+            bpp = 3
+        raw_size = w * h * bpp
+        ratio = 0.3 if ext in ('.jpg', '.webp') else 0.5 if ext == '.png' else 1.0
+        if ext == '.psd':
+            num_layers = len(self.canvas.layer_stack.layers)
+            estimated = raw_size * (1 + 0.3 * num_layers)
+        else:
+            estimated = raw_size * ratio
+        if estimated > 1024 * 1024:
+            self.size_label.setText(f"Estimated size: {estimated / (1024*1024):.1f} MB")
+        else:
+            self.size_label.setText(f"Estimated size: {estimated / 1024:.0f} KB")
+
+    def _browse(self):
+        ext = self.format_combo.currentData()
+        info = FORMAT_REGISTRY.get(ext, {})
+        name = info.get('name', ext.upper())
+        path, _ = QFileDialog.getSaveFileName(self, "Export As", "", f"{name} (*{ext})")
+        if path:
+            self.path_edit.setText(path)
+            self._update_size_estimate()
+
+    def get_options(self):
+        ext = self.format_combo.currentData()
+        opts = {}
+        info = FORMAT_REGISTRY.get(ext, {})
+        export_opts = info.get('export_options', {})
+
+        if 'quality' in export_opts:
+            opts['quality'] = self.quality_slider.value()
+        if 'compression' in export_opts:
+            if ext in ('.tiff', '.tif'):
+                opts['compression'] = self.tiff_comp_combo.currentText()
+            else:
+                opts['compression'] = self.compression_slider.value()
+        return ext, opts
+
+    def _export(self):
+        path = self.path_edit.text().strip()
+        if not path:
+            QMessageBox.warning(self, "Export", "Please select an output path.")
+            return
+        ext, opts = self.get_options()
+        if not path.lower().endswith(ext):
+            path += ext
+        if self.canvas.save_image(path, opts):
+            QMessageBox.information(self, "Export", f"Exported successfully to:\n{path}")
+            self.accept()
+        else:
+            QMessageBox.critical(self, "Export", "Export failed.")
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -330,6 +535,13 @@ class MainWindow(QMainWindow):
         hdock.setWidget(self.history_panel)
         self.addDockWidget(Qt.RightDockWidgetArea, hdock)
 
+        # Initialize recent files before creating menus
+        self.recent_files = []
+        settings = QSettings()
+        stored = settings.value('recent_files', [])
+        if isinstance(stored, list) and stored:
+            self.recent_files = [p for p in stored if os.path.exists(p)][:10]
+
         self.create_menus()
         self.create_statusbar()
 
@@ -407,13 +619,21 @@ class MainWindow(QMainWindow):
         file_m = mb.addMenu("&File")
         file_m.addAction("&New...", self._new_file, QKeySequence.New)
         file_m.addAction("&Open...", self._open_file, QKeySequence.Open)
+        self.open_recent_menu = file_m.addMenu("Open &Recent")
+        self._rebuild_recent_menu()
         file_m.addSeparator()
         file_m.addAction("&Save", self._save_file, QKeySequence.Save)
         file_m.addAction("Save &As...", self._save_as_file, QKeySequence("Ctrl+Shift+S"))
         file_m.addSeparator()
         exp_m = file_m.addMenu("&Export")
+        exp_m.addAction("Export &With Options...", self._export_dialog)
+        exp_m.addSeparator()
         exp_m.addAction("Export as &PNG...", self._export_png)
         exp_m.addAction("Export as &JPEG...", self._export_jpg)
+        exp_m.addAction("Export as &WebP...", self._export_webp)
+        exp_m.addAction("Export as &PSD...", self._export_psd)
+        exp_m.addSeparator()
+        exp_m.addAction("Batch Export &Layers...", self._batch_export_layers)
         file_m.addSeparator()
         file_m.addAction("&Close", self.close, QKeySequence("Ctrl+Q"))
 
@@ -454,6 +674,67 @@ class MainWindow(QMainWindow):
         view_m.addAction("Zoom to &100%", self.canvas.zoom_100, QKeySequence("Ctrl+1"))
         view_m.addAction("&Fit to Screen", self.canvas.zoom_fit, QKeySequence("Ctrl+0"))
         view_m.addSeparator()
+
+        snap_m = view_m.addMenu("&Snap")
+        self.snap_enable_action = snap_m.addAction("Enable &Snap")
+        self.snap_enable_action.setCheckable(True)
+        self.snap_enable_action.setChecked(True)
+        self.snap_enable_action.setShortcut(QKeySequence("Ctrl+;"))
+        self.snap_enable_action.triggered.connect(
+            lambda v: setattr(self.canvas.snapping, 'enabled', v)
+        )
+
+        self.snap_grid_action = snap_m.addAction("Snap to &Grid")
+        self.snap_grid_action.setCheckable(True)
+        self.snap_grid_action.setChecked(False)
+        self.snap_grid_action.triggered.connect(
+            lambda v: setattr(self.canvas.snapping, 'snap_to_grid', v)
+        )
+
+        self.snap_guides_action = snap_m.addAction("Snap to &Guides")
+        self.snap_guides_action.setCheckable(True)
+        self.snap_guides_action.setChecked(True)
+        self.snap_guides_action.triggered.connect(
+            lambda v: setattr(self.canvas.snapping, 'snap_to_guides', v)
+        )
+
+        self.snap_layer_action = snap_m.addAction("Snap to &Layer")
+        self.snap_layer_action.setCheckable(True)
+        self.snap_layer_action.setChecked(True)
+        self.snap_layer_action.triggered.connect(
+            lambda v: setattr(self.canvas.snapping, 'snap_to_layer', v)
+        )
+
+        self.snap_doc_action = snap_m.addAction("Snap to Document &Bounds")
+        self.snap_doc_action.setCheckable(True)
+        self.snap_doc_action.setChecked(True)
+        self.snap_doc_action.triggered.connect(
+            lambda v: setattr(self.canvas.snapping, 'snap_to_document', v)
+        )
+
+        guides_m = view_m.addMenu("&Guides")
+        self.show_guides_action = guides_m.addAction("Show &Guides")
+        self.show_guides_action.setCheckable(True)
+        self.show_guides_action.setChecked(True)
+        self.show_guides_action.triggered.connect(
+            lambda v: setattr(self.canvas.guide_mgr, 'visible', v) or self.canvas.viewport().update()
+        )
+
+        self.lock_guides_action = guides_m.addAction("&Lock Guides")
+        self.lock_guides_action.setCheckable(True)
+        self.lock_guides_action.setChecked(False)
+        self.lock_guides_action.triggered.connect(
+            lambda v: setattr(self.canvas.guide_mgr, 'locked', v)
+        )
+
+        guides_m.addAction("&Clear Guides", lambda: (
+            self.canvas.guide_mgr.clear_guides(),
+            self.canvas.viewport().update()
+        ))
+
+        guides_m.addAction("&New Guide...", self._show_guide_dialog, QKeySequence("Ctrl+Shift+G"))
+
+        view_m.addSeparator()
         ga = view_m.addAction("Show &Grid")
         ga.setCheckable(True)
         ga.setChecked(False)
@@ -462,10 +743,6 @@ class MainWindow(QMainWindow):
         ra.setCheckable(True)
         ra.setChecked(True)
         ra.triggered.connect(lambda v: setattr(self.canvas, 'show_rulers', v) or self.canvas.viewport().update())
-        sa = view_m.addAction("&Snap to Grid")
-        sa.setCheckable(True)
-        sa.setChecked(False)
-        sa.triggered.connect(lambda v: setattr(self.canvas, 'snap_to_grid', v))
         view_m.addSeparator()
         view_m.addAction("&Reset View", self.canvas.zoom_fit)
 
@@ -505,10 +782,11 @@ class MainWindow(QMainWindow):
     def _open_file(self):
         path, _ = QFileDialog.getOpenFileName(
             self, "Open Image", "",
-            "Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.webp *.psd);;All Files (*)"
+            get_open_filter()
         )
         if path and self.canvas.open_image(path):
             self.current_path = path
+            self._add_recent_file(path)
             self.setWindowTitle(f"reverseaffinite Photo - [{path}]")
             self.statusBar().showMessage(f"Opened: {path}")
             self._update_dim_label()
@@ -524,11 +802,12 @@ class MainWindow(QMainWindow):
     def _save_as_file(self):
         path, _ = QFileDialog.getSaveFileName(
             self, "Save Image", "",
-            "PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tiff);;WebP (*.webp);;BMP (*.bmp)"
+            get_save_filter()
         )
         if path:
             self.canvas.save_image(path)
             self.current_path = path
+            self._add_recent_file(path)
             self.setWindowTitle(f"reverseaffinite Photo - [{path}]")
             self._update_dim_label()
             self.statusBar().showMessage(f"Saved: {path}")
@@ -536,12 +815,78 @@ class MainWindow(QMainWindow):
     def _export_png(self):
         path, _ = QFileDialog.getSaveFileName(self, "Export as PNG", "", "PNG (*.png)")
         if path:
-            self.canvas.export_png(path)
+            self.canvas.save_image(path, {'compression': 6})
 
     def _export_jpg(self):
         path, _ = QFileDialog.getSaveFileName(self, "Export as JPEG", "", "JPEG (*.jpg *.jpeg)")
         if path:
-            self.canvas.export_jpg(path)
+            self.canvas.save_image(path, {'quality': 95})
+
+    def _export_webp(self):
+        path, _ = QFileDialog.getSaveFileName(self, "Export as WebP", "", "WebP (*.webp)")
+        if path:
+            self.canvas.save_image(path, {'quality': 80})
+
+    def _export_psd(self):
+        path, _ = QFileDialog.getSaveFileName(self, "Export as PSD", "", "Photoshop (*.psd)")
+        if path:
+            self.canvas.save_image(path)
+
+    def _export_dialog(self):
+        dialog = ExportDialog(self.canvas, self)
+        dialog.exec_()
+
+    def _add_recent_file(self, path):
+        if path in self.recent_files:
+            self.recent_files.remove(path)
+        self.recent_files.insert(0, path)
+        if len(self.recent_files) > 10:
+            self.recent_files = self.recent_files[:10]
+        settings = QSettings()
+        settings.setValue('recent_files', self.recent_files)
+        self._rebuild_recent_menu()
+
+    def _rebuild_recent_menu(self):
+        self.open_recent_menu.clear()
+        for path in self.recent_files:
+            act = self.open_recent_menu.addAction(path)
+            act.triggered.connect(lambda checked, p=path: self._open_recent(p))
+        if not self.recent_files:
+            act = self.open_recent_menu.addAction("(empty)")
+            act.setEnabled(False)
+
+    def _open_recent(self, path):
+        if not os.path.exists(path):
+            QMessageBox.warning(self, "File Not Found",
+                                "The file no longer exists:\n" + path)
+            self.recent_files.remove(path)
+            self._rebuild_recent_menu()
+            return
+        if self.canvas.open_image(path):
+            self.current_path = path
+            self._add_recent_file(path)
+            self.setWindowTitle(f"reverseaffinite Photo - [{path}]")
+            self.statusBar().showMessage(f"Opened: {path}")
+            self._update_dim_label()
+            self.layer_panel.refresh()
+
+    def _show_guide_dialog(self):
+        dialog = GuideDialog(self)
+        if dialog.exec_() and dialog.result_data:
+            orient, pos = dialog.result_data
+            if hasattr(self.canvas, 'guide_mgr'):
+                self.canvas.guide_mgr.add_guide(orient, pos)
+                self.canvas.viewport().update()
+
+    def _batch_export_layers(self):
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Batch Export Layers", "",
+            "PNG (*.png);;JPEG (*.jpg);;WebP (*.webp);;TIFF (*.tiff);;BMP (*.bmp)"
+        )
+        if not path:
+            return
+        fmt = path.rsplit('.', 1)[-1] if '.' in path else 'png'
+        batch_export_layers(self.canvas.layer_stack, path, fmt, parent=self)
 
     def _undo(self):
         if self.canvas.history.can_undo():

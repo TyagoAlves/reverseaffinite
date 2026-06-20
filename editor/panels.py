@@ -1,11 +1,16 @@
-from PyQt5.QtCore import Qt, pyqtSignal, QSize
-from PyQt5.QtGui import QColor, QPixmap, QPainter, QIcon, QFont, QFontDatabase
+import time
+from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer, QRect, QPoint
+from PyQt5.QtGui import (
+    QColor, QPixmap, QPainter, QIcon, QFont, QFontDatabase,
+    QBrush, QPen, QLinearGradient,
+)
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,
     QPushButton, QSlider, QColorDialog, QListWidget,
     QListWidgetItem, QSpinBox, QGridLayout, QComboBox,
     QScrollArea, QFrame, QToolButton, QAbstractItemView,
     QGroupBox, QLineEdit, QSizePolicy, QCheckBox,
+    QProgressBar, QMenu, QInputDialog, QApplication, QToolTip,
 )
 
 from .layers import BLEND_MODES
@@ -304,6 +309,33 @@ class LayerPanel(QWidget):
                 self.refresh()
 
 
+class GradientPanel(QWidget):
+    gradientChanged = pyqtSignal()
+
+    def __init__(self, canvas_getter, parent=None):
+        super().__init__(parent)
+        self.get_canvas = canvas_getter
+        from .gradient_editor import GradientEditorWidget
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(2)
+
+        self.editor = GradientEditorWidget()
+        self.editor.gradientChanged.connect(self._on_gradient_changed)
+        layout.addWidget(self.editor)
+
+    def _on_gradient_changed(self):
+        canvas = self.get_canvas()
+        if canvas:
+            canvas.gradient_obj = self.editor.get_gradient()
+        self.gradientChanged.emit()
+
+    def refresh(self):
+        canvas = self.get_canvas()
+        if canvas and hasattr(canvas, 'gradient_obj'):
+            self.editor.set_gradient(canvas.gradient_obj)
+
+
 class HistoryPanel(QWidget):
     def __init__(self, canvas_getter, parent=None):
         super().__init__(parent)
@@ -410,3 +442,262 @@ class ToolOptionsPanel(QWidget):
         layout.addWidget(self.underline_btn)
 
         layout.addStretch()
+
+
+class BrushPanel(QWidget):
+    brushSettingsChanged = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(4)
+
+        tip_row = QHBoxLayout()
+        tip_row.addWidget(QLabel("Tip:"))
+        self.tip_combo = QComboBox()
+        self.tip_combo.addItems(["Circle", "Square", "Texture"])
+        self.tip_combo.currentTextChanged.connect(self._on_change)
+        tip_row.addWidget(self.tip_combo)
+        layout.addLayout(tip_row)
+
+        hard_row = QHBoxLayout()
+        hard_row.addWidget(QLabel("Hardness:"))
+        self.hardness_slider = QSlider(Qt.Horizontal)
+        self.hardness_slider.setRange(0, 100)
+        self.hardness_slider.setValue(100)
+        self.hardness_slider.valueChanged.connect(self._on_change)
+        hard_row.addWidget(self.hardness_slider)
+        self.hardness_label = QLabel("100%")
+        self.hardness_label.setFixedWidth(32)
+        hard_row.addWidget(self.hardness_label)
+        layout.addLayout(hard_row)
+        self.hardness_slider.valueChanged.connect(
+            lambda v: self.hardness_label.setText(f"{v}%")
+        )
+
+        space_row = QHBoxLayout()
+        space_row.addWidget(QLabel("Spacing:"))
+        self.spacing_slider = QSlider(Qt.Horizontal)
+        self.spacing_slider.setRange(1, 100)
+        self.spacing_slider.setValue(25)
+        self.spacing_slider.valueChanged.connect(self._on_change)
+        space_row.addWidget(self.spacing_slider)
+        self.spacing_label = QLabel("25%")
+        self.spacing_label.setFixedWidth(32)
+        space_row.addWidget(self.spacing_label)
+        layout.addLayout(space_row)
+        self.spacing_slider.valueChanged.connect(
+            lambda v: self.spacing_label.setText(f"{v}%")
+        )
+
+        flow_row = QHBoxLayout()
+        flow_row.addWidget(QLabel("Flow:"))
+        self.flow_slider = QSlider(Qt.Horizontal)
+        self.flow_slider.setRange(1, 100)
+        self.flow_slider.setValue(100)
+        self.flow_slider.valueChanged.connect(self._on_change)
+        flow_row.addWidget(self.flow_slider)
+        self.flow_label = QLabel("100%")
+        self.flow_label.setFixedWidth(32)
+        flow_row.addWidget(self.flow_label)
+        layout.addLayout(flow_row)
+        self.flow_slider.valueChanged.connect(
+            lambda v: self.flow_label.setText(f"{v}%")
+        )
+
+        self.preview_label = QLabel()
+        self.preview_label.setAlignment(Qt.AlignCenter)
+        self.preview_label.setFixedSize(80, 80)
+        self.preview_label.setStyleSheet("border: 1px solid #555; border-radius: 4px;")
+        layout.addWidget(self.preview_label)
+
+        self._brush_engine = None
+
+    def set_brush_engine(self, engine):
+        self._brush_engine = engine
+        self._sync_from_engine()
+
+    def _sync_from_engine(self):
+        if not self._brush_engine:
+            return
+
+    def _on_change(self):
+        if self._brush_engine:
+            tip_name = self.tip_combo.currentText()
+            hardness = self.hardness_slider.value() / 100.0
+            if tip_name == "Circle":
+                self._brush_engine.set_circle_tip(hardness)
+            elif tip_name == "Square":
+                self._brush_engine.set_square_tip(hardness)
+            self._brush_engine.spacing = self.spacing_slider.value() / 100.0
+            self._brush_engine.flow = self.flow_slider.value() / 100.0
+            self._update_preview()
+        self.brushSettingsChanged.emit()
+
+    def _update_preview(self):
+        if not self._brush_engine:
+            return
+        pix = self._brush_engine.make_preview(60)
+        self.preview_label.setPixmap(pix)
+
+
+class PathPanel(QWidget):
+    def __init__(self, canvas_getter, parent=None):
+        super().__init__(parent)
+        self.get_canvas = canvas_getter
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(2)
+
+        layout.addWidget(QLabel("Paths:"))
+        self.list_widget = QListWidget()
+        self.list_widget.currentRowChanged.connect(self._row_changed)
+        layout.addWidget(self.list_widget)
+
+        btn_row = QHBoxLayout()
+        self.del_btn = QPushButton("Delete")
+        self.del_btn.clicked.connect(self._delete_path)
+        btn_row.addWidget(self.del_btn)
+
+        self.fill_cb = QCheckBox("Fill")
+        self.fill_cb.setChecked(True)
+        self.fill_cb.stateChanged.connect(self._toggle_fill)
+        btn_row.addWidget(self.fill_cb)
+
+        self.stroke_cb = QCheckBox("Stroke")
+        self.stroke_cb.stateChanged.connect(self._toggle_stroke)
+        btn_row.addWidget(self.stroke_cb)
+
+        self.vis_btn = QPushButton("Hide")
+        self.vis_btn.clicked.connect(self._toggle_visible)
+        btn_row.addWidget(self.vis_btn)
+
+        layout.addLayout(btn_row)
+
+        action_row = QHBoxLayout()
+        self.to_sel_btn = QPushButton("To Selection")
+        self.to_sel_btn.clicked.connect(self._to_selection)
+        action_row.addWidget(self.to_sel_btn)
+
+        self.stroke_btn = QPushButton("Stroke Path")
+        self.stroke_btn.clicked.connect(self._stroke_path)
+        action_row.addWidget(self.stroke_btn)
+
+        layout.addLayout(action_row)
+
+    def refresh(self):
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        paths = canvas.get_active_paths()
+        self.list_widget.blockSignals(True)
+        self.list_widget.clear()
+        for i, path in enumerate(paths):
+            vis = "V" if path.visible else "H"
+            fill = "F" if path.fill else "NF"
+            stroke = "S" if path.stroke else "NS"
+            item = QListWidgetItem(f"Path {i+1} [{vis}|{fill}|{stroke}]")
+            item.setData(Qt.UserRole, i)
+            self.list_widget.addItem(item)
+        lid = id(canvas.layer_stack.active) if canvas.layer_stack.active else -1
+        idx = canvas.active_path_index.get(lid, 0)
+        if 0 <= idx < self.list_widget.count():
+            self.list_widget.setCurrentRow(idx)
+        self.list_widget.blockSignals(False)
+        self._update_controls()
+
+    def _update_controls(self):
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        path = canvas.get_active_path()
+        if path:
+            self.fill_cb.blockSignals(True)
+            self.fill_cb.setChecked(path.fill)
+            self.fill_cb.blockSignals(False)
+            self.stroke_cb.blockSignals(True)
+            self.stroke_cb.setChecked(path.stroke)
+            self.stroke_cb.blockSignals(False)
+            self.vis_btn.setText("Hide" if path.visible else "Show")
+
+    def _row_changed(self, row):
+        canvas = self.get_canvas()
+        if canvas and row >= 0:
+            lid = id(canvas.layer_stack.active)
+            canvas.active_path_index[lid] = row
+            canvas.update()
+            self._update_controls()
+
+    def _delete_path(self):
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        paths = canvas.get_active_paths()
+        idx = self.list_widget.currentRow()
+        if 0 <= idx < len(paths):
+            del paths[idx]
+            canvas.update()
+            self.refresh()
+
+    def _toggle_fill(self, state):
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        path = canvas.get_active_path()
+        if path:
+            path.fill = bool(state)
+            canvas.update()
+            self.refresh()
+
+    def _toggle_stroke(self, state):
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        path = canvas.get_active_path()
+        if path:
+            path.stroke = bool(state)
+            canvas.update()
+            self.refresh()
+
+    def _toggle_visible(self):
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        path = canvas.get_active_path()
+        if path:
+            path.visible = not path.visible
+            canvas.update()
+            self.refresh()
+
+    def _to_selection(self):
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        path = canvas.get_active_path()
+        if path:
+            qp = path.to_qpainterpath()
+            canvas.selection_path = qp
+            canvas.selection_mask = canvas._selection_mask_from_path(qp)
+            canvas.selection_phase = 0
+            canvas.viewport().update()
+
+    def _stroke_path(self):
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        layer = canvas.layer_stack.active
+        if not layer or layer.locked:
+            return
+        path = canvas.get_active_path()
+        if not path:
+            return
+        qp = path.to_qpainterpath()
+        p = QPainter(layer.image)
+        p.setRenderHint(QPainter.Antialiasing)
+        c = QColor(canvas.tool_color)
+        c.setAlpha(int(255 * canvas.tool_opacity))
+        pen = QPen(c, canvas.tool_size, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+        p.strokePath(qp, pen)
+        p.end()
+        canvas._refresh()

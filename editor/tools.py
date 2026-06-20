@@ -11,6 +11,7 @@ Hotkeys:
 """
 
 from PyQt5.QtCore import Qt, QPointF, QRectF
+from .brushengine import BrushEngine, CircleTip, SquareTip, TextureTip
 from PyQt5.QtGui import QPainter, QPen, QBrush, QColor, QFont, QFontDatabase, QPainterPath, QCursor
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QTextEdit, QComboBox,
@@ -28,9 +29,16 @@ class Tool:
     name = "tool"
     shortcut = ""
     cursor_shape = None
+    _cursor = None
 
     def __init__(self):
         self.pressure = 1.0
+
+    @property
+    def cursor(self):
+        if self._cursor is None and self.cursor_shape is not None:
+            self._cursor = QCursor(self.cursor_shape)
+        return self._cursor
 
     def press(self, canvas, pos, modifiers): pass
     def move(self, canvas, last, pos, modifiers): pass
@@ -41,7 +49,7 @@ class Tool:
 class MoveTool(Tool):
     name = "Move"
     shortcut = "V"
-    cursor = QCursor(Qt.SizeAllCursor)
+    cursor_shape = Qt.SizeAllCursor
 
     def press(self, canvas, pos, mods):
         canvas.drag_start = pos
@@ -62,7 +70,7 @@ class MoveTool(Tool):
 class RectSelectTool(Tool):
     name = "Rectangular Select"
     shortcut = "M"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.selection_start = pos
@@ -86,7 +94,7 @@ class RectSelectTool(Tool):
 class EllipseSelectTool(Tool):
     name = "Elliptical Select"
     shortcut = ""
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.selection_start = pos
@@ -110,7 +118,7 @@ class EllipseSelectTool(Tool):
 class LassoTool(Tool):
     name = "Lasso"
     shortcut = "L"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.lasso_points = [pos]
@@ -132,7 +140,7 @@ class LassoTool(Tool):
 class MagicWandTool(Tool):
     name = "Magic Wand"
     shortcut = "W"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.flood_fill_select(pos)
@@ -141,7 +149,7 @@ class MagicWandTool(Tool):
 class PencilTool(Tool):
     name = "Pencil"
     shortcut = "N"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.draw_point(pos)
@@ -153,7 +161,7 @@ class PencilTool(Tool):
 class BrushTool(Tool):
     name = "Brush"
     shortcut = "B"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.draw_point(pos)
@@ -165,7 +173,7 @@ class BrushTool(Tool):
 class EraserTool(Tool):
     name = "Eraser"
     shortcut = "E"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.erase_point(pos)
@@ -177,7 +185,7 @@ class EraserTool(Tool):
 class GradientTool(Tool):
     name = "Gradient"
     shortcut = "G"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.gradient_start = pos
@@ -189,7 +197,7 @@ class GradientTool(Tool):
 class ShapeTool(Tool):
     name = "Shape"
     shortcut = "U"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.shape_start = pos
@@ -201,7 +209,7 @@ class ShapeTool(Tool):
 class CloneStampTool(Tool):
     name = "Clone Stamp"
     shortcut = "S"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
     clone_source = None
 
     def press(self, canvas, pos, mods):
@@ -222,7 +230,7 @@ class CloneStampTool(Tool):
 class ColorPickerTool(Tool):
     name = "Color Picker"
     shortcut = "I"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         color = canvas.get_pixel_color(pos)
@@ -233,7 +241,7 @@ class ColorPickerTool(Tool):
 class FloodFillTool(Tool):
     name = "Flood Fill"
     shortcut = "K"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.flood_fill(pos)
@@ -242,7 +250,7 @@ class FloodFillTool(Tool):
 class HandTool(Tool):
     name = "Hand"
     shortcut = "H"
-    cursor = QCursor(Qt.OpenHandCursor)
+    cursor_shape = Qt.OpenHandCursor
 
     def press(self, canvas, pos, mods):
         canvas.setDragMode(1)
@@ -256,7 +264,7 @@ class HandTool(Tool):
 class ZoomTool(Tool):
     name = "Zoom"
     shortcut = "Z"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         if mods & 0x04000000:  # Alt
@@ -268,7 +276,7 @@ class ZoomTool(Tool):
 class PenTool(Tool):
     name = "Pen"
     shortcut = "P"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
     dragging = False
 
     def press(self, canvas, pos, mods):
@@ -334,7 +342,7 @@ class PenTool(Tool):
 class TextTool(Tool):
     name = "Text"
     shortcut = "T"
-    cursor = QCursor(Qt.IBeamCursor)
+    cursor_shape = Qt.IBeamCursor
 
     def press(self, canvas, pos, mods):
         dialog = QDialog()
@@ -406,7 +414,7 @@ class TextTool(Tool):
 class HealingBrushTool(Tool):
     name = "Healing Brush"
     shortcut = "J"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
     healing_source = None
 
     def press(self, canvas, pos, mods):
@@ -455,7 +463,7 @@ class HealingBrushTool(Tool):
 class CropTool(Tool):
     name = "Crop"
     shortcut = "C"
-    cursor = QCursor(Qt.CrossCursor)
+    cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
         canvas.crop_start = pos

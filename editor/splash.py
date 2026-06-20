@@ -3,6 +3,8 @@ from PyQt5.QtCore import Qt, QTimer, QRect
 from PyQt5.QtGui import QPixmap, QPainter, QColor, QFont, QIcon, QPen
 from PyQt5.QtWidgets import QSplashScreen
 
+from .i18n import _
+
 
 class SplashScreen(QSplashScreen):
     def __init__(self, app_version="0.1.0"):
@@ -35,19 +37,19 @@ class SplashScreen(QSplashScreen):
         p.setPen(QColor(212, 212, 212))
         title_font = QFont("Segoe UI", 22, QFont.Bold)
         p.setFont(title_font)
-        p.drawText(QRect(0, 100, size[0], 40), Qt.AlignCenter, "reverseaffinite")
+        p.drawText(QRect(0, 100, size[0], 40), Qt.AlignCenter, _("reverseaffinite"))
 
         p.setPen(QColor(150, 150, 150))
         ver_font = QFont("Segoe UI", 11)
         p.setFont(ver_font)
-        p.drawText(QRect(0, 140, size[0], 24), Qt.AlignCenter, f"Version {self.app_version}")
+        p.drawText(QRect(0, 140, size[0], 24), Qt.AlignCenter, _("Version ") + f"{self.app_version}")
 
         p.setPen(QColor(106, 170, 74))
         subtitle_font = QFont("Segoe UI", 10)
         p.setFont(subtitle_font)
-        p.drawText(QRect(0, 170, size[0], 20), Qt.AlignCenter, "Photo Editor")
+        p.drawText(QRect(0, 170, size[0], 20), Qt.AlignCenter, _("Photo Editor"))
 
-        self._message = "Loading..."
+        self._message = _("Loading...")
         p.setPen(QColor(180, 180, 180))
         msg_font = QFont("Segoe UI", 9)
         p.setFont(msg_font)

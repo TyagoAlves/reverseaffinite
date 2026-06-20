@@ -1,0 +1,24 @@
+image: python:3.10
+
+before_script:
+  - apt-get update -qq && apt-get install -y -qq libgl1-mesa-glx libegl1 libxkbcommon0 xvfb
+  - pip install -r requirements.txt
+  - pip install pytest pytest-cov pytest-timeout pytest-qt
+
+stages:
+  - test
+
+test:
+  stage: test
+  script:
+    - xvfb-run python3 -m pytest tests/
+      --cov=editor
+      --cov-report=term
+      --cov-report=xml
+      -v --tb=short
+      -m 'not slow and not stress and not perf'
+  artifacts:
+    reports:
+      coverage_report:
+        path: coverage.xml
+    expire_in: 30 days
