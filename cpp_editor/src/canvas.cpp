@@ -112,14 +112,20 @@ void CanvasView::setTool(const QString &toolName)
     else tool = new PencilTool();
 }
 
+void CanvasView::setBrushShape(const QString &shape)
+{
+    brushShape_ = shape;
+}
+
 void CanvasView::drawPoint(const QPointF &pos)
 {
     auto layer = layerStack.active();
     if (!layer || layer->locked) return;
 
+    Qt::PenCapStyle cap = (brushShape_ == "square") ? Qt::SquareCap : Qt::RoundCap;
     QPainter painter(&layer->image);
     painter.setRenderHint(QPainter::Antialiasing);
-    QPen pen(toolColor_, toolSize_, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    QPen pen(toolColor_, toolSize_, Qt::SolidLine, cap, Qt::RoundJoin);
     painter.setPen(pen);
     painter.drawPoint(pos);
     painter.end();
@@ -133,7 +139,8 @@ void CanvasView::drawLine(const QPointF &p1, const QPointF &p2)
 
     QPainter painter(&layer->image);
     painter.setRenderHint(QPainter::Antialiasing);
-    QPen pen(toolColor_, toolSize_, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    Qt::PenCapStyle cap = (brushShape_ == "square") ? Qt::SquareCap : Qt::RoundCap;
+    QPen pen(toolColor_, toolSize_, Qt::SolidLine, cap, Qt::RoundJoin);
     painter.setPen(pen);
     painter.drawLine(p1, p2);
     painter.end();
@@ -148,7 +155,8 @@ void CanvasView::erasePoint(const QPointF &pos)
     QPainter painter(&layer->image);
     painter.setRenderHint(QPainter::Antialiasing);
     painter.setCompositionMode(QPainter::CompositionMode_Clear);
-    QPen pen(QColor(0, 0, 0, 0), toolSize_, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+    Qt::PenCapStyle cap = (brushShape_ == "square") ? Qt::SquareCap : Qt::RoundCap;
+    QPen pen(QColor(0, 0, 0, 0), toolSize_, Qt::SolidLine, cap, Qt::RoundJoin);
     painter.setPen(pen);
     painter.drawPoint(pos);
     painter.end();

@@ -47,6 +47,7 @@ private:
     ToolPanel *toolPanel_;
     LayerPanel *layerPanel_;
     QComboBox *toolCombo_;
+    QComboBox *brushShapeCombo_;
     QSpinBox *sizeSpin_;
     QPushButton *colorBtn_;
     QLabel *coordLabel_;

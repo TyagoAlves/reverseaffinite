@@ -27,6 +27,7 @@ public:
 
     void setTool(const QString &toolName);
     void setToolSize(int size) { toolSize_ = qMax(1, size); }
+    void setBrushShape(const QString &shape);
     void setForegroundColor(const QColor &c) { toolColor_ = c; }
     void setBackgroundColor(const QColor &c) { bgColor_ = c; }
 
@@ -50,6 +51,7 @@ public:
     int toolSize_ = 3;
     QColor toolColor_ = Qt::black;
     QColor bgColor_ = Qt::white;
+    QString brushShape_ = "round";
     bool drawing_ = false;
     QPointF lastPoint_;
     QPointF selectionStart_;

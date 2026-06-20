@@ -207,9 +207,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(canvas_, &CanvasView::mouseMoved, this, &MainWindow::updateCoords);
 
-    connect(layerPanel_, &LayerPanel::refreshLayers, this, [this]() {
-        layerPanel_->refreshLayers();
-    });
+
 }
 
 void MainWindow::applyDarkTheme()
@@ -292,6 +290,14 @@ void MainWindow::createToolbar()
     sizeSpin_->setValue(3);
     connect(sizeSpin_, QOverload<int>::of(&QSpinBox::valueChanged), canvas_, &CanvasView::setToolSize);
     toolbar->addWidget(sizeSpin_);
+
+    toolbar->addSeparator();
+
+    toolbar->addWidget(new QLabel("Brush:"));
+    brushShapeCombo_ = new QComboBox();
+    brushShapeCombo_->addItems({"Round", "Square"});
+    connect(brushShapeCombo_, &QComboBox::currentTextChanged, canvas_, &CanvasView::setBrushShape);
+    toolbar->addWidget(brushShapeCombo_);
 
     toolbar->addSeparator();
 
