@@ -184,8 +184,9 @@ class SwatchesPanel(QWidget):
     colorSelected = pyqtSignal(QColor)
     bgColorSelected = pyqtSignal(QColor)
 
-    def __init__(self, parent=None):
+    def __init__(self, canvas_getter=None, parent=None):
         super().__init__(parent)
+        self.canvas_getter = canvas_getter
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(2)
@@ -194,30 +195,53 @@ class SwatchesPanel(QWidget):
         mode_row.addWidget(QLabel(_("Click: FG  |  Right-click: BG")))
         layout.addLayout(mode_row)
 
-        grid = QGridLayout()
-        grid.setSpacing(2)
-
         self._swatches = [
-            ("#000000", "Black"), ("#434343", "Dark Gray 3"), ("#666666", "Dark Gray 2"),
-            ("#999999", "Dark Gray 1"), ("#b7b7b7", "Gray"), ("#cccccc", "Light Gray 1"),
-            ("#d9d9d9", "Light Gray 2"), ("#efefef", "Light Gray 3"), ("#f3f3f3", "Light Gray 4"),
-            ("#ffffff", "White"),
-            ("#d9d9d9", "Gray 10%"), ("#bfbfbf", "Gray 20%"), ("#a6a6a6", "Gray 30%"),
-            ("#8c8c8c", "Gray 40%"), ("#737373", "Gray 50%"), ("#595959", "Gray 60%"),
-            ("#404040", "Gray 70%"), ("#262626", "Gray 80%"), ("#0d0d0d", "Gray 90%"),
-            ("#ff0000", "Red"), ("#ff6600", "Orange"), ("#ffff00", "Yellow"),
-            ("#00ff00", "Green"), ("#00ffff", "Cyan"), ("#0066ff", "Blue"),
-            ("#6600ff", "Purple"), ("#ff00ff", "Magenta"), ("#cc0066", "Pink"),
-            ("#ffcccc", "Light Red"), ("#ffcc99", "Light Orange"), ("#ffffcc", "Light Yellow"),
-            ("#ccffcc", "Light Green"), ("#ccffff", "Light Cyan"), ("#99ccff", "Light Blue"),
-            ("#cc99ff", "Light Purple"), ("#ffccff", "Light Magenta"),
-            ("#993300", "Brown"), ("#669900", "Olive"), ("#003366", "Dark Blue"),
-            ("#330066", "Dark Purple"), ("#660033", "Dark Red"),
+            ["#000000", "Black"], ["#434343", "Dark Gray 3"], ["#666666", "Dark Gray 2"],
+            ["#999999", "Dark Gray 1"], ["#b7b7b7", "Gray"], ["#cccccc", "Light Gray 1"],
+            ["#d9d9d9", "Light Gray 2"], ["#efefef", "Light Gray 3"], ["#f3f3f3", "Light Gray 4"],
+            ["#ffffff", "White"],
+            ["#d9d9d9", "Gray 10%"], ["#bfbfbf", "Gray 20%"], ["#a6a6a6", "Gray 30%"],
+            ["#8c8c8c", "Gray 40%"], ["#737373", "Gray 50%"], ["#595959", "Gray 60%"],
+            ["#404040", "Gray 70%"], ["#262626", "Gray 80%"], ["#0d0d0d", "Gray 90%"],
+            ["#ff0000", "Red"], ["#ff6600", "Orange"], ["#ffff00", "Yellow"],
+            ["#00ff00", "Green"], ["#00ffff", "Cyan"], ["#0066ff", "Blue"],
+            ["#6600ff", "Purple"], ["#ff00ff", "Magenta"], ["#cc0066", "Pink"],
+            ["#ffcccc", "Light Red"], ["#ffcc99", "Light Orange"], ["#ffffcc", "Light Yellow"],
+            ["#ccffcc", "Light Green"], ["#ccffff", "Light Cyan"], ["#99ccff", "Light Blue"],
+            ["#cc99ff", "Light Purple"], ["#ffccff", "Light Magenta"],
+            ["#993300", "Brown"], ["#669900", "Olive"], ["#003366", "Dark Blue"],
+            ["#330066", "Dark Purple"], ["#660033", "Dark Red"],
         ]
 
-        self._buttons = []
-        row, col = 0, 0
-        for hex_color, name in self._swatches:
+        self.grid_layout = QGridLayout()
+        self.grid_layout.setSpacing(2)
+        layout.addLayout(self.grid_layout)
+
+        self._rebuild_grid()
+
+        btn_row = QHBoxLayout()
+        add_btn = QPushButton(_("Add to Swatches"))
+        add_btn.clicked.connect(self._add_foreground)
+        btn_row.addWidget(add_btn)
+        layout.addLayout(btn_row)
+
+        file_row = QHBoxLayout()
+        save_btn = QPushButton(_("Save Swatches"))
+        save_btn.clicked.connect(self._save_swatches)
+        file_row.addWidget(save_btn)
+        load_btn = QPushButton(_("Load Swatches"))
+        load_btn.clicked.connect(self._load_swatches)
+        file_row.addWidget(load_btn)
+        layout.addLayout(file_row)
+
+        layout.addStretch()
+
+    def _rebuild_grid(self):
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        for i, (hex_color, name) in enumerate(self._swatches):
             btn = QPushButton()
             btn.setFixedSize(20, 20)
             btn.setToolTip(name)
@@ -225,16 +249,40 @@ class SwatchesPanel(QWidget):
                 f"background-color: {hex_color}; border: 1px solid #333; "
                 f"border-radius: 2px;"
             )
-            r, cdiv = divmod(row, 9)
+            r, c = divmod(i, 9)
             btn.clicked.connect(lambda checked, h=hex_color: self._select_color(h, False))
             btn.setContextMenuPolicy(Qt.CustomContextMenu)
-            btn.customContextMenuRequested.connect(lambda pos, h=hex_color: self._select_color(h, True))
-            grid.addWidget(btn, r, cdiv)
-            self._buttons.append(btn)
-            row += 1
+            btn.customContextMenuRequested.connect(
+                lambda pos, btn=btn, h=hex_color: self._show_swatch_menu(btn, pos, h)
+            )
+            self.grid_layout.addWidget(btn, r, c)
 
-        layout.addLayout(grid)
-        layout.addStretch()
+    def _show_swatch_menu(self, btn, pos, hex_color):
+        menu = QMenu(self)
+        menu.addAction(_("Set as Foreground"), lambda: self._select_color(hex_color, False))
+        menu.addAction(_("Set as Background"), lambda: self._select_color(hex_color, True))
+        menu.addSeparator()
+        menu.addAction(_("Delete Swatch"), lambda: self._delete_swatch(hex_color))
+        menu.exec_(btn.mapToGlobal(pos))
+
+    def _delete_swatch(self, hex_color):
+        for i, (h, n) in enumerate(self._swatches):
+            if h == hex_color:
+                del self._swatches[i]
+                break
+        self._rebuild_grid()
+
+    def _add_foreground(self):
+        if self.canvas_getter:
+            canvas = self.canvas_getter()
+            if canvas:
+                c = canvas.tool_color
+                hex_color = c.name()
+                for h, n in self._swatches:
+                    if h == hex_color:
+                        return
+                self._swatches.append([hex_color, hex_color])
+                self._rebuild_grid()
 
     def _select_color(self, hex_color, is_bg=False):
         c = QColor(hex_color)
@@ -243,6 +291,25 @@ class SwatchesPanel(QWidget):
                 self.bgColorSelected.emit(c)
             else:
                 self.colorSelected.emit(c)
+
+    def _save_swatches(self):
+        import json, os
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "reverseaffinite")
+        os.makedirs(config_dir, exist_ok=True)
+        path = os.path.join(config_dir, "swatches.json")
+        with open(path, "w") as f:
+            json.dump(self._swatches, f)
+
+    def _load_swatches(self):
+        import json, os
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "reverseaffinite")
+        path = os.path.join(config_dir, "swatches.json")
+        if os.path.exists(path):
+            with open(path) as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    self._swatches = data
+                    self._rebuild_grid()
 
 
 class ChannelsPanel(QWidget):
@@ -353,9 +420,12 @@ class ChannelsPanel(QWidget):
             return
         from PyQt5.QtGui import QPainterPath
         path = QPainterPath()
-        w = canvas.layer_stack.active.image.width()
-        h = canvas.layer_stack.active.image.height()
-        path.addRect(0, 0, w, h)
+        if canvas.selection_path and not canvas.selection_path.isEmpty():
+            path = canvas.selection_path
+        else:
+            w = canvas.layer_stack.active.image.width()
+            h = canvas.layer_stack.active.image.height()
+            path.addRect(0, 0, w, h)
         canvas.selection_path = path
         canvas.selection_mask = None
         canvas._refresh()
@@ -378,8 +448,21 @@ class ChannelsPanel(QWidget):
             menu.addAction(_("Duplicate Channel"))
 
         action = menu.exec_(self.list_widget.viewport().mapToGlobal(pos))
-        if ch["name"] not in ("RGB",) and action == vis_action:
-            self._toggle_visibility(ch)
+        if ch["name"] not in ("RGB",):
+            if action == vis_action:
+                self._toggle_visibility(ch)
+            elif action == del_action:
+                self._delete_channel(row)
+
+    def _delete_channel(self, row):
+        if 0 <= row < len(self.channels):
+            ch = self.channels[row]
+            if ch["name"] != "RGB":
+                del self.channels[row]
+                self.refresh()
+                canvas = self.get_canvas()
+                if canvas:
+                    canvas._refresh()
 
     def visible_channels(self):
         return [c["name"] for c in self.channels if c["visible"]]
@@ -944,8 +1027,9 @@ class ToolOptionsPanel(QWidget):
 class BrushPanel(QWidget):
     brushSettingsChanged = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, canvas_getter=None, parent=None):
         super().__init__(parent)
+        self.canvas_getter = canvas_getter
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(4)

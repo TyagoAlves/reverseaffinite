@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 )
 
 from .canvas import CanvasView
-from .panels import ColorPanel, SwatchesPanel, ChannelsPanel, LayerPanel, HistoryPanel, ToolOptionsPanel, NavigatorPanel
+from .panels import ColorPanel, SwatchesPanel, ChannelsPanel, LayerPanel, HistoryPanel, ToolOptionsPanel, NavigatorPanel, GradientPanel, BrushPanel, PathPanel
 from .tools import TOOL_LIST
 from .settings import SettingsManager
 from .preferences_dialog import PreferencesDialog
@@ -686,7 +686,7 @@ class MainWindow(QMainWindow):
         self.right_tabs.addTab(self.color_panel, _("Color"))
 
         # Swatches panel
-        self.swatches_panel = SwatchesPanel()
+        self.swatches_panel = SwatchesPanel(lambda: self.canvas)
         self.swatches_panel.colorSelected.connect(self.canvas.set_foreground_color)
         self.swatches_panel.bgColorSelected.connect(self.canvas.set_background_color)
         self.right_tabs.addTab(self.swatches_panel, _("Swatches"))
@@ -702,6 +702,18 @@ class MainWindow(QMainWindow):
         # History panel
         self.history_panel = HistoryPanel(lambda: self.canvas)
         self.right_tabs.addTab(self.history_panel, _("History"))
+
+        # Gradient panel
+        self.gradient_panel = GradientPanel(lambda: self.canvas)
+        self.right_tabs.addTab(self.gradient_panel, _("Gradient"))
+
+        # Brush panel
+        self.brush_panel = BrushPanel(lambda: self.canvas)
+        self.right_tabs.addTab(self.brush_panel, _("Brush"))
+
+        # Path panel
+        self.path_panel = PathPanel(lambda: self.canvas)
+        self.right_tabs.addTab(self.path_panel, _("Path"))
 
         rdock = QDockWidget(_("Panels"), self)
         rdock.setWidget(self.right_tabs)

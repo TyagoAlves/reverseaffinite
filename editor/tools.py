@@ -503,12 +503,55 @@ class CropTool(Tool):
         canvas.update()
 
 
+class DodgeTool(Tool):
+    name = "Dodge Tool"
+    shortcut = "O"
+    cursor_shape = Qt.CrossCursor
+
+    def press(self, canvas, pos, mods):
+        canvas.tool_color = QColor(255, 255, 255)
+        canvas.draw_point(pos)
+
+    def move(self, canvas, last, pos, mods):
+        canvas.tool_color = QColor(255, 255, 255)
+        canvas.draw_line(last, pos)
+
+
+class BurnTool(Tool):
+    name = "Burn Tool"
+    shortcut = "O"
+    cursor_shape = Qt.CrossCursor
+
+    def press(self, canvas, pos, mods):
+        canvas.tool_color = QColor(0, 0, 0)
+        canvas.draw_point(pos)
+
+    def move(self, canvas, last, pos, mods):
+        canvas.tool_color = QColor(0, 0, 0)
+        canvas.draw_line(last, pos)
+
+
+class SpongeTool(Tool):
+    name = "Sponge Tool"
+    shortcut = "O"
+    cursor_shape = Qt.CrossCursor
+
+    def press(self, canvas, pos, mods):
+        canvas.tool_color = QColor(128, 128, 128)
+        canvas.draw_point(pos)
+
+    def move(self, canvas, last, pos, mods):
+        canvas.tool_color = QColor(128, 128, 128)
+        canvas.draw_line(last, pos)
+
+
 # Register all tools
 for _cls in [MoveTool, RectSelectTool, EllipseSelectTool, LassoTool,
              MagicWandTool, PencilTool, BrushTool, EraserTool,
              GradientTool, ShapeTool, CloneStampTool,
              ColorPickerTool, FloodFillTool, HandTool, ZoomTool,
-             PenTool, TextTool, HealingBrushTool, CropTool]:
+             PenTool, TextTool, HealingBrushTool, CropTool,
+             DodgeTool, BurnTool, SpongeTool]:
     SHORTCUT_MAP[_cls.shortcut.lower()] = _cls
 
 TOOLS_BY_NAME = {}
@@ -533,12 +576,16 @@ _ALIASES = {
     "picker": "Color Picker Tool",
     "fill": "Flood Fill Tool",
     "stamp": "Clone Stamp Tool",
+    "dodge": "Dodge Tool",
+    "burn": "Burn Tool",
+    "sponge": "Sponge Tool",
 }
 for _cls in [MoveTool, RectSelectTool, EllipseSelectTool, LassoTool,
              MagicWandTool, PencilTool, BrushTool, EraserTool,
              GradientTool, ShapeTool, CloneStampTool,
              ColorPickerTool, FloodFillTool, HandTool, ZoomTool,
-             PenTool, TextTool, HealingBrushTool, CropTool]:
+             PenTool, TextTool, HealingBrushTool, CropTool,
+             DodgeTool, BurnTool, SpongeTool]:
     TOOLS_BY_NAME[_cls.name.lower()] = _cls
 for _alias, _full in _ALIASES.items():
     TOOLS_BY_NAME[_alias] = TOOLS_BY_NAME.get(_full.lower())
@@ -547,7 +594,7 @@ TOOL_LIST = [
     ("Select", [MoveTool, RectSelectTool, EllipseSelectTool, LassoTool, MagicWandTool]),
     ("Draw", [BrushTool, PencilTool, PenTool, EraserTool, GradientTool, ShapeTool]),
     ("Text", [TextTool]),
-    ("Retouch", [CloneStampTool, HealingBrushTool]),
+    ("Retouch", [CloneStampTool, HealingBrushTool, DodgeTool, BurnTool, SpongeTool]),
     ("Crop", [CropTool]),
     ("Color", [ColorPickerTool, FloodFillTool]),
     ("View", [HandTool, ZoomTool]),
