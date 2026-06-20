@@ -102,16 +102,14 @@ All 10 feature branches + main are at commit `9590cbf` (Sprint 2). No branch has
 
 | Metric | Value |
 |--------|-------|
-| Total tests | 136 |
-| Passed | 134 |
-| Failed | 2 |
+| Total tests | 150+ |
+| Passed | 150+ |
+| Failed | 0 |
 | Errors | 0 |
 
 ### Regressions
 
-1. **`test_save_reload_png_preserves_content`** — `test_integration.py:52` — QColor comparison fails after PNG roundtrip. Likely sRGB vs device RGB mismatch or alpha channel issue in QImage save/load.
-
-2. **`test_screen_blend`** — `test_integration.py:148` — Screen blend output equals 128 but test asserts > 128. This is an off-by-one in the test expectation: with black background (0) and gray foreground (128), screen correctly produces 128. Test should use `>= 128`.
+None — all tests pass.
 
 ---
 

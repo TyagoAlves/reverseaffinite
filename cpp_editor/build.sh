@@ -14,12 +14,14 @@ if [ ! -d "$QT_LOCAL_DIR/include/QtCore" ]; then
     echo "Attempting to download Qt5 SDK using aqtinstall..."
     echo ""
 
-    # Check if aqtinstall is available
-    AQT_CMD=""
+    # Ensure aqtinstall is available
     if python3 -c "import aqt" 2>/dev/null; then
         AQT_CMD="python3 -m aqt"
     elif [ -f /tmp/qt_venv/bin/python ]; then
         AQT_CMD="/tmp/qt_venv/bin/python -m aqt"
+    else
+        echo "[INFO] Installing aqtinstall..."
+        pip install aqtinstall -q 2>&1 && AQT_CMD="python3 -m aqt" || true
     fi
 
     if [ -n "$AQT_CMD" ]; then
@@ -31,10 +33,9 @@ if [ ! -d "$QT_LOCAL_DIR/include/QtCore" ]; then
         mkdir -p "$PROJECT_DIR/qt_local"
         (cd "$QT_TMP/5.15.2" && tar cf - gcc_64 --dereference) | (cd "$PROJECT_DIR/qt_local" && tar xf - 2>/dev/null || true)
         rm -rf "$QT_TMP"
-        # Patch cmake configs to use .so instead of .so.5.15.2
         find "$QT_LOCAL_DIR/lib/cmake" -name "*.cmake" -exec sed -i 's/\(libQt5[^.]*\)\.so\.5\.15\.2/\1.so/g' {} \; 2>/dev/null || true
     else
-        echo "[WARNING] aqtinstall not available. Install with: pip install aqtinstall"
+        echo "[WARNING] aqtinstall not available. Try: pip install aqtinstall"
         echo "Qt5 headers will not be available - build may fail."
     fi
 fi

@@ -44,7 +44,7 @@
     .shortcut-key { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.08); }
 
     .code-block { background: rgba(6, 10, 20, 0.8); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.8; overflow-x: auto; }
-    .code-block .prompt { color: #22d3ee; }
+    .code-block .prompt { color: #22d3ee; user-select: none; -webkit-user-select: none; }
     .code-block .cmd { color: #e2e8f0; }
     .code-block .output { color: #64748b; }
 
@@ -168,7 +168,7 @@
           <div class="text-sm text-gray-500 mt-1">Undo Levels</div>
         </div>
         <div class="glass-card rounded-2xl p-6">
-          <div class="text-4xl font-black gradient-cyan">136</div>
+          <div class="text-4xl font-black gradient-cyan">150+</div>
           <div class="text-sm text-gray-500 mt-1">Testes</div>
         </div>
       </div>
@@ -264,7 +264,7 @@
         </div>
 
         <div>
-          <div class="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
+          <div class="grid grid-cols-4 sm:grid-cols-4 gap-2.5">
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">V</div><div class="text-[11px] text-gray-500">Move</div></div>
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">M</div><div class="text-[11px] text-gray-500">Select</div></div>
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">L</div><div class="text-[11px] text-gray-500">Lasso</div></div>
@@ -273,13 +273,14 @@
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">E</div><div class="text-[11px] text-gray-500">Eraser</div></div>
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">P</div><div class="text-[11px] text-gray-500">Pen</div></div>
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-cyan mb-0.5">G</div><div class="text-[11px] text-gray-500">Gradient</div></div>
-            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">S</div><div class="text-[11px] text-gray-500">Shape</div></div>
-            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">T</div><div class="text-[11px] text-gray-500">Text</div></div>
-            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">C</div><div class="text-[11px] text-gray-500">Clone</div></div>
-            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-cyan mb-0.5">H</div><div class="text-[11px] text-gray-500">Healing</div></div>
-            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">O</div><div class="text-[11px] text-gray-500">Crop</div></div>
-            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">I</div><div class="text-[11px] text-gray-500">Picker</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">U</div><div class="text-[11px] text-gray-500">Shape</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">S</div><div class="text-[11px] text-gray-500">Clone</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">J</div><div class="text-[11px] text-gray-500">Healing</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-cyan mb-0.5">C</div><div class="text-[11px] text-gray-500">Crop</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">I</div><div class="text-[11px] text-gray-500">Picker</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">H</div><div class="text-[11px] text-gray-500">Hand</div></div>
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">Z</div><div class="text-[11px] text-gray-500">Zoom</div></div>
+            <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-cyan mb-0.5">O</div><div class="text-[11px] text-gray-500">Dodge/Burn</div></div>
           </div>
           <p class="text-gray-600 text-xs mt-5 text-center">Atalhos estilo Photoshop — zero necessidade de mouse para trocar ferramentas</p>
         </div>
@@ -317,12 +318,13 @@
             <h3 class="text-lg font-bold">C++ Engine (Qt5/OpenGL)</h3>
           </div>
           <div class="code-block text-sm">
+            <span class="prompt">$</span> <span class="cmd">pip install aqtinstall</span><br>
             <span class="prompt">$</span> <span class="cmd">cd reverseaffinite/cpp_editor</span><br>
             <span class="prompt">$</span> <span class="cmd">chmod +x build.sh</span><br>
             <span class="prompt">$</span> <span class="cmd">./build.sh</span><br>
             <span class="output">&#10003; C++ engine compiled — ~104 KB binary</span>
           </div>
-          <p class="text-gray-600 text-xs mt-4">Requer Qt5 (download automático via aqtinstall) e CMake.</p>
+          <p class="text-gray-600 text-xs mt-4">Requer Python + Qt5 (download automático) + CMake + g++.</p>
         </div>
       </div>
     </div>
