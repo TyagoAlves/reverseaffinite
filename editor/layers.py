@@ -2,7 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QColor, QPainter
 import numpy as np
 
-from .blend_modes import BLEND_FUNCTIONS
+from .blend_modes import BLEND_FUNCTIONS, blend_normal
 
 BLEND_FUNCS = BLEND_FUNCTIONS
 BLEND_MODES = list(BLEND_FUNCS.keys()) + ["Hue", "Saturation", "Color", "Luminosity"]
@@ -405,7 +405,7 @@ class LayerStack:
                 qimg = _float_array_to_qimage(result, w, h)
                 result_qimg = layer.filter_func(qimg, layer.params)
                 adjusted = _qimage_to_float_array(result_qimg)
-                blend_func = BLEND_FUNCS.get(layer.blend_mode, _blend_normal)
+                blend_func = BLEND_FUNCS.get(layer.blend_mode, blend_normal)
                 blend_rgb = blend_func(result[:, :, :3], adjusted[:, :, :3])
                 alpha = layer.opacity
                 a = alpha
@@ -434,7 +434,7 @@ class LayerStack:
                 m_arr = np.frombuffer(mptr2, dtype=np.uint8).copy().reshape(h, w, 4)
             mask_alpha = m_arr[:, :, 0].astype(np.float32) / 255.0
             layer_arr[:, :, 3] = layer_arr[:, :, 3] * mask_alpha
-        blend_func = BLEND_FUNCS.get(layer.blend_mode, _blend_normal)
+        blend_func = BLEND_FUNCS.get(layer.blend_mode, blend_normal)
         blend_rgb = blend_func(result[:, :, :3], layer_arr[:, :, :3])
         layer_arr[:, :, 3] = layer_arr[:, :, 3] * layer.fill
         alpha = layer_arr[:, :, 3] * layer.opacity
@@ -451,7 +451,7 @@ class LayerStack:
                 self._composite_group_into(child, group_result, w, h)
             elif child.visible:
                 self._composite_layer_into(child, group_result, w, h)
-        blend_func = BLEND_FUNCS.get(group.blend_mode, _blend_normal)
+        blend_func = BLEND_FUNCS.get(group.blend_mode, blend_normal)
         blend_rgb = blend_func(result[:, :, :3], group_result[:, :, :3])
         alpha = group_result[:, :, 3] * group.opacity
         a = alpha[:, :, np.newaxis]
