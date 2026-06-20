@@ -84,6 +84,7 @@ class CanvasView(QGraphicsView):
         self.crop_start = None
         self.crop_end = None
         self.crop_drag_handle = None
+        self._plugin_filters = {}
 
         self.show_grid = False
         self.show_rulers = True

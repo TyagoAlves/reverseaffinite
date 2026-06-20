@@ -766,6 +766,7 @@ class MainWindow(QMainWindow):
         self.canvas.tool_changed.connect(self.tool_palette.select_tool_by_name)
 
         self.current_path = None
+        self._plugin_manager = self._init_plugins()
         self._update_dim_label()
         self.retranslate_ui()
 
@@ -1409,6 +1410,34 @@ class MainWindow(QMainWindow):
         dialog = FilterGalleryDialog(self.canvas, self)
         dialog.exec_()
         self.canvas._refresh()
+
+    def _init_plugins(self):
+        try:
+            from plugins import PluginManager
+            mgr = PluginManager(plugin_dir=os.path.join(os.path.dirname(__file__), "..", "plugins"))
+            mgr.discover()
+            ctx = {
+                "canvas": self.canvas,
+                "main_window": self,
+                "menu_bar": self.menuBar(),
+                "tab_widget": self.right_tabs,
+            }
+            for plugin in mgr.plugins:
+                try:
+                    plugin.on_load(ctx)
+                    for filt_name, filt_func in plugin.register_filters():
+                        self.canvas._plugin_filters[filt_name] = filt_func
+                    plugin.register_menu_items(self.menuBar())
+                    plugin.register_panels(self.right_tabs)
+                except Exception:
+                    pass
+            if mgr.plugins:
+                self.statusBar().showMessage(
+                    _("Plugins loaded: %d") % len(mgr.plugins), 3000
+                )
+            return mgr
+        except Exception:
+            pass
 
 
 def main():
