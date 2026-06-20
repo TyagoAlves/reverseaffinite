@@ -33,7 +33,7 @@ class TestToolPalette(unittest.TestCase):
         btn = self.palette.tool_buttons.get("Brush")
         if btn:
             btn.click()
-            self.assertEqual(self.main.canvas.tool.name, "Brush")
+            self.assertEqual(self.main.canvas.tool.name, "Brush Tool")
 
     def test_tool_palette_has_all_tools(self):
         expected_count = sum(len(tools) for _, tools in enumerate(
@@ -69,7 +69,7 @@ class TestMainWindowActions(unittest.TestCase):
 
     def test_tool_change_via_menu(self):
         self.main.canvas.set_tool("brush")
-        self.assertEqual(self.main.canvas.tool.name, "Brush")
+        self.assertEqual(self.main.canvas.tool.name, "Brush Tool")
 
 
 if __name__ == "__main__":

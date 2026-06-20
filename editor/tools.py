@@ -512,12 +512,36 @@ for _cls in [MoveTool, RectSelectTool, EllipseSelectTool, LassoTool,
     SHORTCUT_MAP[_cls.shortcut.lower()] = _cls
 
 TOOLS_BY_NAME = {}
+_ALIASES = {
+    "brush": "Brush Tool",
+    "pencil": "Pencil Tool",
+    "eraser": "Eraser Tool",
+    "move": "Move Tool",
+    "zoom": "Zoom Tool",
+    "hand": "Hand Tool",
+    "text": "Text Tool",
+    "pen": "Pen Tool",
+    "gradient": "Gradient Tool",
+    "shape": "Shape Tool",
+    "clone": "Clone Stamp Tool",
+    "heal": "Healing Brush Tool",
+    "crop": "Crop Tool",
+    "rect": "Rect Select Tool",
+    "ellipse": "Ellipse Select Tool",
+    "lasso": "Lasso Tool",
+    "wand": "Magic Wand Tool",
+    "picker": "Color Picker Tool",
+    "fill": "Flood Fill Tool",
+    "stamp": "Clone Stamp Tool",
+}
 for _cls in [MoveTool, RectSelectTool, EllipseSelectTool, LassoTool,
              MagicWandTool, PencilTool, BrushTool, EraserTool,
              GradientTool, ShapeTool, CloneStampTool,
              ColorPickerTool, FloodFillTool, HandTool, ZoomTool,
              PenTool, TextTool, HealingBrushTool, CropTool]:
     TOOLS_BY_NAME[_cls.name.lower()] = _cls
+for _alias, _full in _ALIASES.items():
+    TOOLS_BY_NAME[_alias] = TOOLS_BY_NAME.get(_full.lower())
 
 TOOL_LIST = [
     ("Select", [MoveTool, RectSelectTool, EllipseSelectTool, LassoTool, MagicWandTool]),

@@ -193,25 +193,24 @@ def blend_hue(bottom, top, opacity=1.0):
     b_s = np.divide(b_c, b_max, out=np.zeros_like(b_c), where=b_max > 1e-8)
     t_s = np.divide(t_c, t_max, out=np.zeros_like(t_c), where=t_max > 1e-8)
     b_h = np.zeros_like(b_c)
-    for i, (r, g, b) in enumerate([(bottom[..., 0], bottom[..., 1], bottom[..., 2])]):
-        pass
-    mask_r = (b_max == b[..., 0]) & (b_c > 1e-8)
-    mask_g = (b_max == b[..., 1]) & (b_c > 1e-8)
-    mask_b = (b_max == b[..., 2]) & (b_c > 1e-8)
-    frac_gb = np.divide(g - b, b_c, out=np.zeros_like(b_c), where=b_c > 1e-8)
-    frac_rb = np.divide(b - r, b_c, out=np.zeros_like(b_c), where=b_c > 1e-8)
-    frac_rg = np.divide(r - g, b_c, out=np.zeros_like(b_c), where=b_c > 1e-8)
-    idx = np.where(b_max == r, 6.0 + frac_gb, np.where(b_max == g, 2.0 + frac_rb, 4.0 + frac_rg))
+    b_r, b_g, b_b = bottom[..., 0], bottom[..., 1], bottom[..., 2]
+    mask_r = (b_max == b_r) & (b_c > 1e-8)
+    mask_g = (b_max == b_g) & (b_c > 1e-8)
+    mask_b = (b_max == b_b) & (b_c > 1e-8)
+    frac_gb = np.divide(b_g - b_b, b_c, out=np.zeros_like(b_c), where=b_c > 1e-8)
+    frac_rb = np.divide(b_b - b_r, b_c, out=np.zeros_like(b_c), where=b_c > 1e-8)
+    frac_rg = np.divide(b_r - b_g, b_c, out=np.zeros_like(b_c), where=b_c > 1e-8)
+    idx = np.where(b_max == b_r, 6.0 + frac_gb, np.where(b_max == b_g, 2.0 + frac_rb, 4.0 + frac_rg))
     b_h = np.where(b_c > 1e-8, idx * 60.0, 0.0)
     b_h = b_h % 360.0
     t_h = np.zeros_like(t_c)
-    mask_r_t = (t_max == top[..., 0]) & (t_c > 1e-8)
-    mask_g_t = (t_max == top[..., 1]) & (t_c > 1e-8)
-    mask_b_t = (t_max == top[..., 2]) & (t_c > 1e-8)
-    frac_gb_t = np.divide(g - b, t_c, out=np.zeros_like(t_c), where=t_c > 1e-8)
-    frac_rb_t = np.divide(b - r, t_c, out=np.zeros_like(t_c), where=t_c > 1e-8)
-    frac_rg_t = np.divide(r - g, t_c, out=np.zeros_like(t_c), where=t_c > 1e-8)
-    del r, g, b
+    t_r, t_g, t_b = top[..., 0], top[..., 1], top[..., 2]
+    mask_r_t = (t_max == t_r) & (t_c > 1e-8)
+    mask_g_t = (t_max == t_g) & (t_c > 1e-8)
+    mask_b_t = (t_max == t_b) & (t_c > 1e-8)
+    frac_gb_t = np.divide(t_g - t_b, t_c, out=np.zeros_like(t_c), where=t_c > 1e-8)
+    frac_rb_t = np.divide(t_b - t_r, t_c, out=np.zeros_like(t_c), where=t_c > 1e-8)
+    frac_rg_t = np.divide(t_r - t_g, t_c, out=np.zeros_like(t_c), where=t_c > 1e-8)
     idx_t = np.where(t_max == top[..., 0], 6.0 + frac_gb_t, np.where(t_max == top[..., 1], 2.0 + frac_rb_t, 4.0 + frac_rg_t))
     t_h = np.where(t_c > 1e-8, idx_t * 60.0, 0.0)
     t_h = t_h % 360.0

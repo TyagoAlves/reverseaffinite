@@ -2,7 +2,12 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QColor, QPainter
 import numpy as np
 
-from .blend_modes import BLEND_FUNCTIONS, blend_normal as _blend_normal
+from .blend_modes import (
+    BLEND_FUNCTIONS,
+    blend_normal as _blend_normal,
+    blend_color_dodge as _blend_color_dodge,
+    blend_color_burn as _blend_color_burn,
+)
 
 BLEND_FUNCS = BLEND_FUNCTIONS
 BLEND_MODES = list(BLEND_FUNCS.keys()) + ["Hue", "Saturation", "Color", "Luminosity"]
@@ -384,6 +389,8 @@ class LayerStack:
         iw, ih = img.width(), img.height()
         if iw != w or ih != h:
             img = img.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+        if img.format() != QImage.Format_RGBA8888:
+            img = img.convertToFormat(QImage.Format_RGBA8888)
         ptr = img.constBits()
         ptr.setsize(img.sizeInBytes())
         arr = np.frombuffer(ptr, dtype=np.uint8).copy().reshape(ih, iw, 4)

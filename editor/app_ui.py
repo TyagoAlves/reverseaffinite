@@ -19,6 +19,7 @@ from .preferences_dialog import PreferencesDialog
 from .resources import apply_dark_theme
 from .tool_icons import get_tool_icon
 from .i18n import _, get_translator
+from .openconsole import install_console
 
 
 class ToolPalette(QWidget):
@@ -715,6 +716,7 @@ class MainWindow(QMainWindow):
 
         self.create_menus()
         self.create_statusbar()
+        self.console_dock = install_console(self, lambda: self.canvas)
 
         self.canvas.mouse_moved.connect(self._update_coords)
         self.canvas.status_changed.connect(self.statusBar().showMessage)
