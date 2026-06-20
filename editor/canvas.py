@@ -427,7 +427,7 @@ class CanvasView(QGraphicsView):
         x1, y1 = min(w, x + radius + 1), min(h, y + radius + 1)
         if x0 >= x1 or y0 >= y1:
             return
-        from .layers import to_array, from_array
+        from .filters import to_array, from_array
         rect = QRect(x0, y0, x1 - x0, y1 - y0)
         arr = to_array(layer.image.copy(rect))
         result = op_func(arr, strength)
