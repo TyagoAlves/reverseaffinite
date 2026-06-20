@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>reverseaffinite — Editor de Imagens Profissional para Linux</title>
-  <meta name="description" content="Editor de imagens open source para Linux. 15+ ferramentas profissionais, camadas com 12 blend modes, filtros, seleções precisas e engine C++." />
+  <title>reverseaffinite — Editor de Imagens Profissional</title>
+  <meta name="description" content="Editor de imagens open source. 15+ ferramentas, camadas, blend modes, filtros. Linux, Windows e macOS." />
   <meta property="og:title" content="reverseaffinite — Editor de Imagens Profissional" />
-  <meta property="og:description" content="O melhor editor de imagens open source para Linux." />
+  <meta property="og:description" content="O editor de imagens open source que funciona em qualquer lugar." />
   <meta property="og:url" content="https://tyagoalves.github.io/reverseaffinite/" />
   <meta name="theme-color" content="#0a0e1a" />
   <script src="https://cdn.tailwindcss.com"></script>
@@ -19,61 +19,106 @@
         },
       },
     };
+
+    function detectOS() {
+      const ua = navigator.userAgent;
+      if (ua.includes('Win')) return 'windows';
+      if (ua.includes('Mac')) return 'macos';
+      if (ua.includes('Linux')) return 'linux';
+      return 'linux';
+    }
+
+    const OS = detectOS();
+    const OS_NAMES = { windows: 'Windows', macos: 'macOS', linux: 'Linux' };
+    const OS_ICONS = {
+      windows: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4l7 1v7l-7-1V4zm0 12l7 1v7l-7-1v-7zm9-13l7 1v7l-7-1V3zm0 12l7 1v7l-7-1v-7z"/></svg>`,
+      macos: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>`,
+      linux: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`,
+    };
+    const OS_DOWNLOADS = {
+      windows: '#',
+      macos: '#',
+      linux: 'https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinite-x86_64.AppImage',
+    };
+    const OS_INSTALL = {
+      linux: [
+        { cmd: 'wget -O reverseaffinite.AppImage https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinite-x86_64.AppImage', label: 'Baixar AppImage' },
+        { cmd: 'chmod +x reverseaffinite.AppImage', label: 'Permissão de execução' },
+        { cmd: './reverseaffinite.AppImage', label: 'Executar!' },
+      ],
+      windows: [
+        { cmd: 'In desenvolvemento — por enquanto use Python:', label: '' },
+        { cmd: 'git clone https://github.com/TyagoAlves/reverseaffinite.git', label: '' },
+        { cmd: 'cd reverseaffinite', label: '' },
+        { cmd: 'pip install PyQt5 numpy', label: '' },
+        { cmd: 'python main.py', label: 'Executar!' },
+      ],
+      macos: [
+        { cmd: 'In desenvolvimento — por enquanto use Python:', label: '' },
+        { cmd: 'git clone https://github.com/TyagoAlves/reverseaffinite.git', label: '' },
+        { cmd: 'pip3 install PyQt5 numpy', label: '' },
+        { cmd: 'python3 main.py', label: 'Executar!' },
+      ],
+    };
+
+    function updateForOS() {
+      document.querySelectorAll('.os-detect').forEach(el => el.classList.remove('hidden'));
+      document.querySelectorAll('[data-os]').forEach(el => {
+        const os = el.getAttribute('data-os');
+        if (os === 'all' || os === OS) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+      });
+      document.querySelectorAll('.os-name').forEach(el => el.textContent = OS_NAMES[OS]);
+      document.querySelectorAll('.os-icon').forEach(el => el.innerHTML = OS_ICONS[OS]);
+      document.querySelectorAll('.os-download-link').forEach(el => el.href = OS_DOWNLOADS[OS]);
+
+      const installCmds = OS_INSTALL[OS];
+      const tmpl = document.getElementById('install-template');
+      if (tmpl) {
+        const html = installCmds.map(c =>
+          `<span class="cmd">${c.cmd}</span>` + (c.label ? `<span class="output">&#10003; ${c.label}</span>` : '')
+        ).join('<br>');
+        tmpl.innerHTML = html;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', updateForOS);
   </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #060a14; color: #f1f5f9; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
-
     .gradient-text { background: linear-gradient(135deg, #f97316, #a855f7, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .gradient-orange { background: linear-gradient(135deg, #f97316, #fb923c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .gradient-purple { background: linear-gradient(135deg, #a855f7, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .gradient-cyan { background: linear-gradient(135deg, #06b6d4, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-
     .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.06); }
     .glass-card { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.05); transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
     .glass-card:hover { border-color: rgba(249, 115, 22, 0.3); transform: translateY(-4px); box-shadow: 0 20px 60px rgba(249,115,22,0.08); }
-
     .hero-glow { position: absolute; width: 700px; height: 700px; border-radius: 50%; pointer-events: none; filter: blur(80px); opacity: 0.15; }
     .hero-glow-1 { background: radial-gradient(circle, #f97316, transparent 70%); top: -300px; left: -200px; }
     .hero-glow-2 { background: radial-gradient(circle, #a855f7, transparent 70%); bottom: -200px; right: -200px; }
     .hero-glow-3 { background: radial-gradient(circle, #06b6d4, transparent 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); }
-
-    .card-hover { transition: all 0.3s ease; }
-    .card-hover:hover { border-color: rgba(249,115,22,0.3); transform: translateY(-2px); }
-
-    .shortcut-key { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; font-size: 0.9rem; font-weight: 700; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.08); }
-
     .code-block { background: rgba(6, 10, 20, 0.8); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 1.5rem; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.8; overflow-x: auto; }
     .code-block .cmd::before { content: "$ "; color: #22d3ee; user-select: none; -webkit-user-select: none; }
     .code-block .cmd { color: #e2e8f0; }
-    .code-block .output { color: #64748b; }
-
+    .code-block .output { color: #22c55e; display: block; margin-top: 2px; }
     .grid-pattern { background-image: radial-gradient(rgba(249,115,22,0.03) 1px, transparent 1px); background-size: 40px 40px; }
-
-    .marching-ants { stroke-dasharray: 8 4; animation: march 0.5s linear infinite; }
-    @keyframes march { to { stroke-dashoffset: -12; } }
-
-    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
-    .float { animation: float 5s ease-in-out infinite; }
-
-    .hero-btn { position: relative; overflow: hidden; }
+    .hero-btn { position: relative; overflow: hidden; transition: all 0.3s ease; }
     .hero-btn::after { content: ''; position: absolute; inset: -2px; border-radius: inherit; background: linear-gradient(135deg, #f97316, #a855f7, #06b6d4); z-index: -1; opacity: 0; transition: opacity 0.4s; }
     .hero-btn:hover::after { opacity: 1; }
-
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #060a14; }
-    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
-
-    .animate-in { opacity: 0; transform: translateY(20px); animation: fadeInUp 0.6s ease forwards; }
-    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
-
-    .feature-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
-
     .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2); color: #fb923c; }
     .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #fb923c; animation: pulse 2s infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-
-    section { position: relative; z-index: 1; }
+    .feature-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #060a14; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+    .animate-in { opacity: 0; transform: translateY(20px); animation: fadeInUp 0.6s ease forwards; }
+    .platform-btn { transition: all 0.3s ease; cursor: pointer; }
+    .platform-btn:hover { border-color: rgba(249,115,22,0.5); transform: translateY(-2px); }
+    .platform-btn.active { border-color: #f97316; background: rgba(249,115,22,0.1); }
+    .os-detect { display: none; }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -81,24 +126,23 @@
 </head>
 <body>
 
-  <!-- NAV -->
   <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-white/5">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
-        <a href="https://tyagoalves.github.io/reverseaffinite/" class="flex items-center gap-3 group">
+        <a href="#" class="flex items-center gap-3 group">
           <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 via-purple-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm group-hover:scale-105 transition">RA</span>
           <span class="font-bold text-xl">reverse<span class="text-orange-400">affinite</span></span>
         </a>
         <div class="hidden md:flex items-center gap-8 text-sm">
           <a href="#features" class="text-gray-400 hover:text-white transition font-medium">Recursos</a>
+          <a href="#download" class="text-gray-400 hover:text-white transition font-medium">Download</a>
           <a href="#install" class="text-gray-400 hover:text-white transition font-medium">Instalar</a>
-          <a href="#shortcuts" class="text-gray-400 hover:text-white transition font-medium">Atalhos</a>
-          <a href="https://tyagoalves.github.io/reverseaffinite/documentation" class="text-gray-400 hover:text-white transition font-medium">Documentação</a>
           <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" rel="noopener" class="text-gray-400 hover:text-white transition">
             <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
           </a>
-          <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white px-5 py-2 rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-300">
-            Download
+          <a id="nav-download-btn" href="#" class="os-download-link relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white px-5 py-2 rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-300 inline-flex items-center gap-2 os-detect">
+            <span class="os-icon"></span>
+            Download para <span class="os-name"></span>
           </a>
         </div>
         <button class="md:hidden text-gray-400 hover:text-white p-2" onclick="document.getElementById('mobileMenu').classList.toggle('hidden')">
@@ -109,11 +153,12 @@
     <div id="mobileMenu" class="hidden md:hidden border-t border-white/5 bg-[#060a14]">
       <div class="px-4 py-4 space-y-3">
         <a href="#features" class="block text-gray-400 hover:text-white py-2">Recursos</a>
+        <a href="#download" class="block text-gray-400 hover:text-white py-2">Download</a>
         <a href="#install" class="block text-gray-400 hover:text-white py-2">Instalar</a>
-        <a href="#shortcuts" class="block text-gray-400 hover:text-white py-2">Atalhos</a>
-        <a href="https://tyagoalves.github.io/reverseaffinite/documentation" class="block text-gray-400 hover:text-white py-2">Documentação</a>
         <a href="https://github.com/TyagoAlves/reverseaffinite" class="block text-gray-400 hover:text-white py-2">GitHub</a>
-        <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="block bg-gradient-to-r from-orange-500 to-cyan-500 text-white px-4 py-2 rounded-xl font-semibold text-center">Download</a>
+        <a id="mobile-download-btn" href="#" class="os-download-link block bg-gradient-to-r from-orange-500 to-cyan-500 text-white px-4 py-2 rounded-xl font-semibold text-center os-detect">
+          Download para <span class="os-name"></span>
+        </a>
       </div>
     </div>
   </nav>
@@ -123,54 +168,42 @@
     <div class="hero-glow hero-glow-1"></div>
     <div class="hero-glow hero-glow-2"></div>
     <div class="hero-glow hero-glow-3"></div>
-
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
       <div class="animate-in" style="animation-delay: 0.1s">
         <div class="badge mb-8">
           <span class="dot"></span>
-          Open Source &bull; Python/PyQt5 &bull; Linux
+          Open Source &bull; Multiplataforma
         </div>
       </div>
-
       <h1 class="animate-in text-5xl sm:text-6xl md:text-8xl font-black leading-[1.05] mb-8" style="animation-delay: 0.2s">
         Made for<br>
         <span class="gradient-text">your creative era.</span>
       </h1>
-
       <p class="animate-in text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto mb-12 leading-relaxed" style="animation-delay: 0.3s">
-        15+ ferramentas profissionais, camadas com 12 modos de mesclagem, filtros em tempo real,
-        seleções precisas e engine C++ em desenvolvimento. <strong class="text-gray-200">Tudo open source, nativo Linux.</strong>
+        Editor de imagens open source com 15+ ferramentas profissionais, camadas, blend modes e engine C++.
+        <strong class="text-gray-200">100% gratuito.</strong>
       </p>
 
       <div class="animate-in flex flex-wrap justify-center gap-4" style="animation-delay: 0.4s">
-        <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="group relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white font-bold px-8 py-4 rounded-2xl text-lg transition-all duration-300 shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 flex items-center gap-3">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          Download Grátis
+        <a id="hero-download-btn" href="#" class="os-download-link group relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white font-bold px-10 py-5 rounded-2xl text-lg transition-all duration-300 shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 flex items-center gap-3 os-detect">
+          <span class="os-icon"></span>
+          <span>Download para <span class="os-name"></span></span>
+          <span class="px-3 py-0.5 rounded-full bg-white/10 text-sm">Grátis</span>
         </a>
-        <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" class="glass-card text-gray-300 font-semibold px-8 py-4 rounded-2xl text-lg flex items-center gap-3">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-          Ver no GitHub
+        <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="glass-card text-gray-300 font-semibold px-8 py-5 rounded-2xl text-lg flex items-center gap-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Código Fonte
         </a>
       </div>
 
-      <!-- Stats -->
-      <div class="animate-in mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto" style="animation-delay: 0.5s">
-        <div class="glass-card rounded-2xl p-6">
-          <div class="text-4xl font-black gradient-orange">15+</div>
-          <div class="text-sm text-gray-500 mt-1">Ferramentas</div>
-        </div>
-        <div class="glass-card rounded-2xl p-6">
-          <div class="text-4xl font-black gradient-purple">12</div>
-          <div class="text-sm text-gray-500 mt-1">Blend Modes</div>
-        </div>
-        <div class="glass-card rounded-2xl p-6">
-          <div class="text-4xl font-black gradient-orange">100</div>
-          <div class="text-sm text-gray-500 mt-1">Undo Levels</div>
-        </div>
-        <div class="glass-card rounded-2xl p-6">
-          <div class="text-4xl font-black gradient-cyan">150+</div>
-          <div class="text-sm text-gray-500 mt-1">Testes</div>
-        </div>
+      <div class="animate-in flex justify-center gap-4 mt-8 os-detect" style="animation-delay: 0.5s">
+        <span class="text-sm text-gray-500">Detectado: <span class="text-gray-300 font-semibold os-name"></span></span>
+        <span class="text-gray-600">|</span>
+        <span class="text-sm text-gray-500">Também disponível para:
+          <a href="#" onclick="setOS('windows'); return false;" class="text-cyan-400 hover:underline" data-os="all">Windows</a>,
+          <a href="#" onclick="setOS('macos'); return false;" class="text-cyan-400 hover:underline" data-os="all">macOS</a>,
+          <a href="#" onclick="setOS('linux'); return false;" class="text-cyan-400 hover:underline" data-os="all">Linux</a>
+        </span>
       </div>
     </div>
   </section>
@@ -183,57 +216,128 @@
         <h2 class="text-4xl sm:text-5xl font-black mb-4">Tudo que você precisa<br>para <span class="gradient-text">editar como um profissional</span></h2>
         <p class="text-gray-400 text-lg max-w-2xl mx-auto">Do brush ao pen tool, das camadas aos filtros — cada ferramenta foi feita para ser rápida, intuitiva e poderosa.</p>
       </div>
-
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
         <div class="glass-card rounded-2xl p-8">
           <div class="feature-icon bg-orange-500/10 text-orange-400 mb-5">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
           </div>
-          <h3 class="text-lg font-bold mb-3">15+ Ferramentas Profissionais</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Move, Brush, Eraser, Pen (Bezier), Gradient, Shape, Text, Clone Stamp, Healing Brush, Crop, e mais. Cada ferramenta com atalho de tecla única.</p>
+          <h3 class="text-lg font-bold mb-3">15+ Ferramentas</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Move, Brush, Eraser, Pen, Gradient, Shape, Text, Clone, Healing, Crop e mais.</p>
         </div>
-
         <div class="glass-card rounded-2xl p-8">
           <div class="feature-icon bg-purple-500/10 text-purple-400 mb-5">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
           </div>
           <h3 class="text-lg font-bold mb-3">Camadas + Blend Modes</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">12 modos de mesclagem (Normal, Multiply, Screen, Overlay, etc.), opacidade, visibilidade, máscaras e grupos. Tudo não-destrutivo.</p>
+          <p class="text-gray-400 text-sm leading-relaxed">12 blend modes, opacidade, máscaras e grupos. Tudo não-destrutivo.</p>
         </div>
-
         <div class="glass-card rounded-2xl p-8">
           <div class="feature-icon bg-cyan-500/10 text-cyan-400 mb-5">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
           </div>
           <h3 class="text-lg font-bold mb-3">Seleções Precisas</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Retangular, Elíptica, Lasso, Varinha Mágica — com marching ants, máscaras de seleção, feather e modos de adição/subtração.</p>
+          <p class="text-gray-400 text-sm leading-relaxed">Retangular, Elíptica, Lasso, Varinha Mágica — com feather e modos de adição/subtração.</p>
         </div>
-
         <div class="glass-card rounded-2xl p-8">
           <div class="feature-icon bg-orange-500/10 text-orange-400 mb-5">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
           </div>
-          <h3 class="text-lg font-bold mb-3">Filtros em Tempo Real</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Blur, Sharpen, Edge Detect, Pixelate, Posterize, Grayscale, Invert, Sepia. Ajustes não-destrutivos com camadas de ajuste.</p>
+          <h3 class="text-lg font-bold mb-3">Filtros + Ajustes</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Blur, Sharpen, Edge Detect, Pixelate, Grayscale, Invert, Sepia. Camadas de ajuste não-destrutivas.</p>
         </div>
-
         <div class="glass-card rounded-2xl p-8">
           <div class="feature-icon bg-purple-500/10 text-purple-400 mb-5">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </div>
-          <h3 class="text-lg font-bold mb-3">Pen / Bezier Completo</h3>
-          <p class="text-gray-400 text-sm leading-relaxed">Curvas cúbicas com handles de controle. Adição/remoção de pontos âncora, path editing — como no Illustrator ou Affinity Designer.</p>
+          <h3 class="text-lg font-bold mb-3">Pen / Bezier</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">Curvas cúbicas com handles, adição/remoção de âncoras, path editing completo.</p>
         </div>
-
         <div class="glass-card rounded-2xl p-8">
           <div class="feature-icon bg-cyan-500/10 text-cyan-400 mb-5">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
-            <h3 class="text-lg font-bold mb-3">Undo/Redo Ilimitado</h3>
-            <p class="text-gray-400 text-sm leading-relaxed">100 níveis de histórico com preview visual no History Panel. Snapshots completos para retroceder qualquer operação.</p>
-          </div>
-
+          <h3 class="text-lg font-bold mb-3">Undo/Redo</h3>
+          <p class="text-gray-400 text-sm leading-relaxed">100 níveis de histórico com preview visual. Snapshots completos.</p>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section id="download" class="py-32 relative border-t border-white/5">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="badge justify-center mb-6">Download</div>
+      <h2 class="text-4xl sm:text-5xl font-black mb-4">
+        Baixar para <span class="gradient-text os-name"></span>
+      </h2>
+      <p class="text-gray-400 text-lg mb-12 max-w-2xl mx-auto os-detect">
+        Seu sistema foi detectado como <strong class="text-gray-200 os-name"></strong>.
+        Clique no botão abaixo para baixar a versão correta.
+      </p>
+
+      <div class="flex flex-wrap justify-center gap-4 mb-16">
+        <button onclick="setOS('linux')" class="platform-btn glass-card rounded-2xl px-8 py-5 min-w-[180px] text-center" data-os="all" id="plat-linux">
+          <div class="text-3xl mb-2">&#8981;</div>
+          <div class="font-bold">Linux</div>
+          <div class="text-sm text-gray-500">AppImage</div>
+        </button>
+        <button onclick="setOS('windows')" class="platform-btn glass-card rounded-2xl px-8 py-5 min-w-[180px] text-center" data-os="all" id="plat-windows">
+          <div class="text-3xl mb-2">&#9862;</div>
+          <div class="font-bold">Windows</div>
+          <div class="text-sm text-gray-500">.exe</div>
+        </button>
+        <button onclick="setOS('macos')" class="platform-btn glass-card rounded-2xl px-8 py-5 min-w-[180px] text-center" data-os="all" id="plat-macos">
+          <div class="text-3xl mb-2">&#63743;</div>
+          <div class="font-bold">macOS</div>
+          <div class="text-sm text-gray-500">.dmg</div>
+        </button>
+      </div>
+
+      <a id="big-download-btn" href="#" class="os-download-link group relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white font-bold px-12 py-6 rounded-2xl text-xl transition-all duration-300 shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 inline-flex items-center gap-4 os-detect">
+        <span class="os-icon"></span>
+        <div class="text-left">
+          <div>Baixar para <span class="os-name"></span></div>
+          <div id="download-sub" class="text-sm opacity-80 font-normal">AppImage portátil — 81 MB</div>
+        </div>
+        <span class="ml-4 px-4 py-1 rounded-full bg-white/10 text-sm">Download</span>
+      </a>
+
+      <div class="mt-8 text-sm text-gray-500">
+        <span id="alt-source" class="os-detect">Alternativa:
+          <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="text-cyan-400 hover:underline">baixar código fonte</a>
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- INSTALL -->
+  <section id="install" class="py-32 relative border-t border-white/5">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <div class="badge justify-center mb-6">Instalação</div>
+        <h2 class="text-4xl sm:text-5xl font-black mb-4">
+          Instalar em <span class="gradient-text os-name"></span>
+        </h2>
+        <p class="text-gray-400 text-lg os-detect">Pré-compilado para <strong class="text-gray-200 os-name"></strong>. Só executar.</p>
+      </div>
+
+      <div class="glass-card rounded-2xl p-8 max-w-2xl mx-auto">
+        <div class="flex items-center gap-3 mb-6">
+          <span class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold os-icon"></span>
+          <h3 class="text-lg font-bold">
+            Instalação via <span class="os-name"></span>
+          </h3>
+        </div>
+        <div class="code-block text-sm" id="install-template">
+        </div>
+        <p class="text-gray-600 text-xs mt-4 os-detect" data-os="linux">Requer: FUSE (libfuse2) para AppImage. Ubuntu: <code class="text-cyan-400">sudo apt install libfuse2</code></p>
+      </div>
+
+      <div class="mt-8 text-center">
+        <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" class="text-gray-400 hover:text-white transition text-sm">
+          Problemas com a instalação? Abra uma issue no GitHub
+        </a>
+      </div>
     </div>
   </section>
 
@@ -243,9 +347,8 @@
       <div class="text-center mb-20">
         <div class="badge justify-center mb-6">Atalhos</div>
         <h2 class="text-4xl sm:text-5xl font-black mb-4">Layout <span class="gradient-text">Profissional</span></h2>
-        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Paleta de ferramentas à esquerda, painéis à direita — como no Affinity Photo e Photoshop. Cada ferramenta com atalho de tecla única.</p>
+        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Paleta de ferramentas à esquerda, painéis à direita — como no Affinity Photo e Photoshop.</p>
       </div>
-
       <div class="grid lg:grid-cols-2 gap-12 max-w-5xl mx-auto items-start">
         <div class="glass rounded-2xl p-6 font-mono text-xs leading-relaxed overflow-x-auto">
           <pre class="text-gray-400">
@@ -263,9 +366,8 @@
 └──────────────────────────────────────────┘
           </pre>
         </div>
-
         <div>
-          <div class="grid grid-cols-4 sm:grid-cols-4 gap-2.5">
+          <div class="grid grid-cols-4 gap-2.5">
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">V</div><div class="text-[11px] text-gray-500">Move</div></div>
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-purple mb-0.5">M</div><div class="text-[11px] text-gray-500">Select</div></div>
             <div class="glass-card rounded-xl p-3.5 text-center"><div class="text-xl font-black gradient-orange mb-0.5">L</div><div class="text-[11px] text-gray-500">Lasso</div></div>
@@ -289,149 +391,25 @@
     </div>
   </section>
 
-  <!-- INSTALL -->
-  <section id="install" class="py-32 relative border-t border-white/5">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-20">
-        <div class="badge justify-center mb-6">Instalação</div>
-        <h2 class="text-4xl sm:text-5xl font-black mb-4">Pronto em <span class="gradient-text">segundos</span></h2>
-        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Python, PyQt5 e numpy são as únicas dependências. 3 comandos e você está editando.</p>
-      </div>
-
-      <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        <div class="glass-card rounded-2xl p-8">
-          <div class="flex items-center gap-3 mb-6">
-            <span class="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400 font-bold">&#9654;</span>
-            <h3 class="text-lg font-bold">Python (PyQt5)</h3>
-          </div>
-          <div class="code-block text-sm">
-            <span class="cmd">git clone https://github.com/TyagoAlves/reverseaffinite.git</span><br>
-            <span class="cmd">cd reverseaffinite</span><br>
-            <span class="cmd">pip install PyQt5 numpy</span><br>
-            <span class="cmd">python3 main.py</span><br>
-            <span class="output">&#10003; reverseaffinite Photo — pronto!</span>
-          </div>
-        </div>
-
-          <div class="glass-card rounded-2xl p-8">
-            <div class="flex items-center gap-3 mb-6">
-              <span class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold">&#9889;</span>
-              <h3 class="text-lg font-bold">C++ Engine (Qt5/OpenGL)</h3>
-            </div>
-            <div class="code-block text-sm">
-              <span class="cmd">cd reverseaffinite/cpp_editor</span><br>
-              <span class="cmd">chmod +x build.sh</span><br>
-              <span class="cmd">./build.sh  # auto-detecta distro</span><br>
-              <span class="output">&#10003; C++ engine compiled — ~304 KB binary</span>
-            </div>
-            <p class="text-gray-600 text-xs mt-4">Auto-detecta: apt (Debian/Ubuntu), dnf (Fedora), pacman (Arch), zypper (openSUSE), apk (Alpine), xbps (Void), emerge (Gentoo).</p>
-          </div>
-
-          <div class="glass-card rounded-2xl p-8">
-            <div class="flex items-center gap-3 mb-6">
-              <span class="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400 font-bold">&#9861;</span>
-              <h3 class="text-lg font-bold">Windows (PowerShell)</h3>
-            </div>
-            <div class="code-block text-sm">
-              <span class="cmd">cd reverseaffinite\cpp_editor</span><br>
-              <span class="cmd">powershell -ExecutionPolicy Bypass .\build_windows.ps1</span><br>
-              <span class="output">&#10003; reverseaffinite.exe built</span>
-            </div>
-            <p class="text-gray-600 text-xs mt-4">Requer CMake + Qt5 + Visual Studio Build Tools. Detecta GPU NVIDIA automaticamente.</p>
-          </div>
-      </div>
-    </div>
-  </section>
-
-
-  <!-- DOWNLOAD -->
-
-  <section id="download" class="py-32 relative border-t border-white/5">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-20">
-        <h2 class="text-4xl md:text-5xl font-bold mb-4">
-          <span class="gradient-text">Download</span>
-        </h2>
-        <p class="text-gray-400 max-w-2xl mx-auto">Pronto pra usar. Sem depend&ecirc;ncias.</p>
-      </div>
-      <div class="flex justify-center">
-        <a href="https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinite-x86_64.AppImage"
-           class="glass px-10 py-5 rounded-2xl inline-flex items-center gap-4 text-lg font-semibold hover:scale-105 transition-all duration-300 group">
-          <span class="text-3xl">&#x1F4E6;</span>
-          <div class="text-left">
-            <div>reverseaffinite-x86_64.AppImage</div>
-            <div class="text-sm text-gray-400 font-normal">81 MB &bull; Linux x86_64 &bull; Portable</div>
-          </div>
-          <span class="ml-4 px-4 py-1 rounded-full bg-green-500/20 text-green-400 text-sm">Download</span>
-        </a>
-      </div>
-      <div class="text-center mt-8">
-        <p class="text-gray-500 text-sm">Ou compile do fonte: <code class="text-cyan-400">git clone https://github.com/TyagoAlves/reverseaffinite.git</code></p>
-      </div>
-    </div>
-  </section>
-
-  <!-- ARCHITECTURE -->
-  <section id="architecture" class="py-32 relative border-t border-white/5">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-20">
-        <div class="badge justify-center mb-6">Arquitetura</div>
-        <h2 class="text-4xl sm:text-5xl font-black mb-4">Dual Engine</h2>
-        <p class="text-gray-400 text-lg max-w-2xl mx-auto">Python/PyQt5 para prototipação rápida, C++/Qt5/OpenGL para performance de produção.</p>
-      </div>
-
-      <div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        <div class="glass-card rounded-2xl p-8">
-          <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
-            <span class="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">&#128013;</span>
-            Python Engine
-          </h3>
-          <div class="space-y-3 text-sm text-gray-400">
-            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> Interface completa com PyQt5</div>
-            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> 15+ ferramentas com atalhos profissionais</div>
-            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> Blend modes via NumPy (SIMD-ready)</div>
-            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> Histórico de 100 níveis com snapshots</div>
-            <div class="flex items-start gap-3"><span class="text-orange-400 mt-0.5">&#9656;</span> 150+ testes automatizados</div>
-          </div>
-        </div>
-
-        <div class="glass-card rounded-2xl p-8">
-          <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
-            <span class="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">&#9889;</span>
-            C++ Engine
-          </h3>
-          <div class="space-y-3 text-sm text-gray-400">
-            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Pipeline de renderização OpenGL</div>
-            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Pixel ops com SSE2 (128-bit SIMD)</div>
-            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Qt5 com OpenGL canvas</div>
-            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Binário ~104 KB otimizado</div>
-            <div class="flex items-start gap-3"><span class="text-cyan-400 mt-0.5">&#9656;</span> Build via aqtinstall + CMake</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- CTA -->
   <section class="py-32 relative border-t border-white/5">
     <div class="hero-glow hero-glow-1" style="top: -200px; left: -200px;"></div>
     <div class="max-w-4xl mx-auto px-4 text-center relative z-10">
       <h2 class="text-5xl sm:text-6xl font-black mb-6">Pronto para <span class="gradient-text">editar?</span></h2>
-      <p class="text-gray-400 text-xl mb-10 max-w-2xl mx-auto">Clone, instale as dependências e comece a editar em segundos. <strong class="text-gray-200">100% open source, 100% gratuito.</strong></p>
+      <p class="text-gray-400 text-xl mb-10 max-w-2xl mx-auto">Baixe agora e comece a editar em segundos. <strong class="text-gray-200">100% open source, 100% gratuito.</strong></p>
       <div class="flex flex-wrap justify-center gap-4">
-        <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="group relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white font-bold px-10 py-5 rounded-2xl text-lg transition-all duration-300 shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 inline-flex items-center gap-3">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          Download Grátis
+        <a id="cta-download-btn" href="#" class="os-download-link group relative hero-btn bg-gradient-to-r from-orange-500 via-purple-500 to-cyan-500 text-white font-bold px-10 py-5 rounded-2xl text-lg transition-all duration-300 shadow-xl shadow-orange-500/20 hover:shadow-orange-500/40 inline-flex items-center gap-3 os-detect">
+          <span class="os-icon"></span>
+          Download para <span class="os-name"></span>
         </a>
-        <a href="https://tyagoalves.github.io/reverseaffinite/documentation" class="glass-card text-gray-300 font-semibold px-10 py-5 rounded-2xl text-lg inline-flex items-center gap-3">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-          Documentação
+        <a href="https://github.com/TyagoAlves/reverseaffinite" target="_blank" class="glass-card text-gray-300 font-semibold px-10 py-5 rounded-2xl text-lg inline-flex items-center gap-3">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
         </a>
       </div>
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer class="border-t border-white/5 py-16">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-10">
@@ -439,7 +417,7 @@
           <span class="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 via-purple-500 to-cyan-500 flex items-center justify-center text-white font-bold">RA</span>
           <div>
             <span class="font-bold text-lg">reverse<span class="text-orange-400">affinite</span></span>
-            <p class="text-gray-600 text-xs mt-0.5">Editor de imagens open source para Linux</p>
+            <p class="text-gray-600 text-xs mt-0.5">Editor de imagens open source</p>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-6 text-sm text-gray-500">
@@ -448,7 +426,6 @@
             GitHub
           </a>
           <a href="https://github.com/TyagoAlves/reverseaffinite/issues" target="_blank" class="hover:text-gray-300 transition">Reportar Bug</a>
-          <a href="https://tyagoalves.github.io/reverseaffinite/documentation" class="hover:text-gray-300 transition">Documentação</a>
           <span class="text-gray-600">MIT License</span>
         </div>
       </div>
@@ -459,6 +436,62 @@
   </footer>
 
   <script>
+    function setOS(os) {
+      document.querySelectorAll('.platform-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('plat-' + os)?.classList.add('active');
+      const names = { windows: 'Windows', macos: 'macOS', linux: 'Linux' };
+      const icons = {
+        windows: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4l7 1v7l-7-1V4zm0 12l7 1v7l-7-1v-7zm9-13l7 1v7l-7-1V3zm0 12l7 1v7l-7-1v-7z"/></svg>`,
+        macos: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>`,
+        linux: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`,
+      };
+      const subs = {
+        windows: 'Instalador executável',
+        macos: 'Pacote .dmg para macOS',
+        linux: 'AppImage portátil — 81 MB',
+      };
+      document.querySelectorAll('.os-name').forEach(el => el.textContent = names[os]);
+      document.querySelectorAll('.os-icon').forEach(el => el.innerHTML = icons[os]);
+      document.getElementById('download-sub').textContent = subs[os];
+
+      const installCmds = {
+        linux: [
+          '<span class="cmd">wget -O reverseaffinite.AppImage https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinite-x86_64.AppImage</span>',
+          '<span class="cmd">chmod +x reverseaffinite.AppImage</span>',
+          '<span class="output">&#10003; Agora execute:</span>',
+          '<span class="cmd">./reverseaffinite.AppImage</span>',
+        ],
+        windows: [
+          '<span class="cmd">Em breve — instalador nativo para Windows!</span>',
+          '<span class="output">&#9888; Por enquanto, use a versão Python:</span>',
+          '<span class="cmd">git clone https://github.com/TyagoAlves/reverseaffinite.git</span>',
+          '<span class="cmd">cd reverseaffinite</span>',
+          '<span class="cmd">pip install PyQt5 numpy</span>',
+          '<span class="cmd">python main.py</span>',
+        ],
+        macos: [
+          '<span class="cmd">Em breve — pacote .dmg para macOS!</span>',
+          '<span class="output">&#9888; Por enquanto, use a versão Python:</span>',
+          '<span class="cmd">git clone https://github.com/TyagoAlves/reverseaffinite.git</span>',
+          '<span class="cmd">cd reverseaffinite</span>',
+          '<span class="cmd">pip3 install PyQt5 numpy</span>',
+          '<span class="cmd">python3 main.py</span>',
+        ],
+      };
+      document.getElementById('install-template').innerHTML = installCmds[os].join('<br>');
+
+      const links = {
+        linux: 'https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinite-x86_64.AppImage',
+        windows: 'https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip',
+        macos: 'https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip',
+      };
+      document.querySelectorAll('.os-download-link').forEach(el => el.href = links[os]);
+
+      document.getElementById('alt-source').innerHTML = 'Alternativa: <a href="https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip" class="text-cyan-400 hover:underline">baixar código fonte</a>';
+    }
+
+    setOS(OS);
+
     document.querySelectorAll('a[href^="#"]').forEach(a => {
       a.addEventListener('click', e => {
         e.preventDefault();
@@ -471,9 +504,7 @@
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.style.animationPlayState = 'running';
-        }
+        if (entry.isIntersecting) entry.target.style.animationPlayState = 'running';
       });
     });
     document.querySelectorAll('.animate-in').forEach(el => {
@@ -481,6 +512,5 @@
       observer.observe(el);
     });
   </script>
-
 </body>
 </html>
