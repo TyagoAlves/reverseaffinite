@@ -351,3 +351,32 @@ def apply_dark_theme(app):
     palette.setColor(QPalette.Highlight, QColor(58, 138, 196))
     palette.setColor(QPalette.HighlightedText, QColor(255, 255, 255))
     app.setPalette(palette)
+
+
+APP_ICONS = {
+    "photo": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+<rect x="4" y="8" width="40" height="32" rx="2" fill="#3a8ac4"/>
+<circle cx="16" cy="20" r="5" fill="#fff"/>
+<path d="M4 40l12-16 8 10 6-8 14 14H4z" fill="#2a6a94"/>
+</svg>""",
+    "video": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+<rect x="2" y="10" width="32" height="28" rx="3" fill="#3a8a3a"/>
+<path d="M34 18l12 7-12 7V18z" fill="#5aaa5a"/>
+<circle cx="12" cy="20" r="4" fill="#fff" opacity=".6"/>
+</svg>""",
+}
+
+
+def get_app_icon(mode="photo"):
+    from PyQt5.QtGui import QIcon, QPixmap
+    from PyQt5.QtSvg import QSvgRenderer
+    from PyQt5.QtCore import QByteArray, QRect
+    svg_data = APP_ICONS.get(mode, APP_ICONS["photo"])
+    renderer = QSvgRenderer(QByteArray(svg_data.encode()))
+    pixmap = QPixmap(48, 48)
+    pixmap.fill(Qt.transparent)
+    from PyQt5.QtGui import QPainter
+    p = QPainter(pixmap)
+    renderer.render(p, QRect(0, 0, 48, 48))
+    p.end()
+    return QIcon(pixmap)

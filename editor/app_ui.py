@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QInputDialog, QMenu, QStatusBar, QDockWidget, QTabWidget,
     QButtonGroup, QFrame, QScrollArea,
     QSplitter, QDialog, QGridLayout, QCheckBox, QGroupBox,
-    QApplication, QMessageBox, QDialogButtonBox, QFormLayout, QLineEdit,
+    QApplication, QMessageBox, QDialogButtonBox, QFormLayout, QLineEdit, QStackedWidget,
 )
 
 from .canvas import CanvasView
@@ -21,6 +21,8 @@ from .tool_icons import get_tool_icon
 from .i18n import _, get_translator
 from .openconsole import install_console
 from .openchat import AIChatPanel
+from .video_mode import VideoMode
+from .resources import get_app_icon
 
 
 class ToolPalette(QWidget):
@@ -586,7 +588,13 @@ class MainWindow(QMainWindow):
         self.resize(1400, 900)
 
         self.canvas = CanvasView(self)
-        self.setCentralWidget(self.canvas)
+
+        self.mode_stack = QStackedWidget()
+        self.mode_stack.addWidget(self.canvas)
+        self.video_mode = VideoMode()
+        self.mode_stack.addWidget(self.video_mode)
+        self.setCentralWidget(self.mode_stack)
+        self.current_mode = "photo"
 
         self.settings = SettingsManager()
         self.settings.load()
@@ -720,9 +728,9 @@ class MainWindow(QMainWindow):
         self.ai_panel = AIChatPanel(lambda: self.canvas)
         self.right_tabs.addTab(self.ai_panel, "AI")
 
-        rdock = QDockWidget(_("Panels"), self)
-        rdock.setWidget(self.right_tabs)
-        self.addDockWidget(Qt.RightDockWidgetArea, rdock)
+        self.right_dock = QDockWidget(_("Panels"), self)
+        self.right_dock.setWidget(self.right_tabs)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.right_dock)
 
         # Initialize recent files before creating menus
         self.recent_files = []
@@ -964,6 +972,9 @@ class MainWindow(QMainWindow):
         view_m.addSeparator()
         view_m.addAction(_("&Reset View"), self.canvas.zoom_fit)
 
+        view_m.addSeparator()
+        self.mode_action = view_m.addAction(_("Switch to &Video Mode"), self._toggle_mode, QKeySequence("F5"))
+
         help_m = mb.addMenu(_("&Help"))
         help_m.addAction(_("&About reverseaffinite"), self._show_about)
 
@@ -1150,6 +1161,26 @@ class MainWindow(QMainWindow):
         self.tool_label.setText(self.canvas.tool.name)
         self.dim_label.setText("")
         self.statusBar().showMessage(_("Ready"))
+
+    def _toggle_mode(self):
+        if self.current_mode == "photo":
+            self.current_mode = "video"
+            self.mode_stack.setCurrentIndex(1)
+            self.mode_action.setText(_("Switch to &Photo Mode"))
+            self.tool_palette.parent().hide()
+            self.tool_options.hide()
+            self.right_dock.hide()
+            self.console_dock.hide()
+            self.setWindowTitle(_("reverseaffinite Video - [Untitled]"))
+        else:
+            self.current_mode = "photo"
+            self.mode_stack.setCurrentIndex(0)
+            self.mode_action.setText(_("Switch to &Video Mode"))
+            self.tool_palette.parent().show()
+            self.tool_options.show()
+            self.right_dock.show()
+            self.console_dock.show()
+            self.setWindowTitle(_("reverseaffinite Photo - [Untitled]"))
 
     def _paste_image(self):
         if self.canvas.paste_from_clipboard():
