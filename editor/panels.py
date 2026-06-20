@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QProgressBar, QMenu, QInputDialog, QApplication, QToolTip,
 )
 
-from .layers import BLEND_MODES
+from .layers import BLEND_MODES, AdjustmentLayer, GroupLayer
 
 
 class ColorSwatch(QPushButton):
@@ -210,7 +210,49 @@ class LayerPanel(QWidget):
         self.list_widget = QListWidget()
         self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
         self.list_widget.currentRowChanged.connect(self._row_changed)
+        self.list_widget.setIconSize(QSize(24, 24))
+        self.list_widget.setSpacing(1)
         layout.addWidget(self.list_widget)
+
+    def _make_layer_item_widget(self, i, layer):
+        widget = QWidget()
+        h = QHBoxLayout(widget)
+        h.setContentsMargins(2, 1, 2, 1)
+        h.setSpacing(4)
+
+        thumb = QLabel()
+        thumb.setFixedSize(24, 24)
+        thumb.setScaledContents(True)
+        try:
+            thumb_img = layer.image.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            thumb.setPixmap(QPixmap.fromImage(thumb_img))
+        except Exception:
+            pass
+        h.addWidget(thumb)
+
+        vis_btn = QToolButton()
+        vis_btn.setFixedSize(18, 18)
+        vis_btn.setText("👁" if layer.visible else " ")
+        vis_btn.setToolTip("Toggle visibility")
+        vis_btn.clicked.connect(lambda checked, idx=i: self._toggle_visibility(idx))
+        h.addWidget(vis_btn)
+
+        lock_btn = QToolButton()
+        lock_btn.setFixedSize(18, 18)
+        lock_btn.setText("🔒" if layer.locked else " ")
+        lock_btn.setToolTip("Toggle lock")
+        lock_btn.clicked.connect(lambda checked, idx=i: self._toggle_lock(idx))
+        h.addWidget(lock_btn)
+
+        name_label = QLabel(layer.name)
+        name_label.setFixedHeight(20)
+        if isinstance(layer, AdjustmentLayer):
+            name_label.setText(f"⚡ {layer.name}")
+        elif isinstance(layer, GroupLayer):
+            name_label.setText(f"📁 {layer.name}")
+        h.addWidget(name_label, 1)
+
+        return widget
 
     def refresh(self):
         canvas = self.get_canvas()
@@ -219,12 +261,12 @@ class LayerPanel(QWidget):
         self.list_widget.blockSignals(True)
         self.list_widget.clear()
         for i, layer in enumerate(canvas.layer_stack.layers):
-            vis = "[V]" if layer.visible else "[ ]"
-            lock = "[L]" if layer.locked else ""
-            prefix = "[F] " if hasattr(layer, 'filter_func') and layer.filter_func else ""
-            item = QListWidgetItem(f"{prefix}{vis}{lock} {layer.name}")
+            item = QListWidgetItem()
             item.setData(Qt.UserRole, i)
+            widget = self._make_layer_item_widget(i, layer)
+            item.setSizeHint(widget.sizeHint())
             self.list_widget.addItem(item)
+            self.list_widget.setItemWidget(item, widget)
         if 0 <= canvas.layer_stack.active_index < self.list_widget.count():
             self.list_widget.setCurrentRow(canvas.layer_stack.active_index)
         self.list_widget.blockSignals(False)
@@ -241,6 +283,21 @@ class LayerPanel(QWidget):
             self.opacity_label.setText(f"{int(active.opacity * 100)}%")
             self.opacity_slider.blockSignals(False)
 
+    def _toggle_visibility(self, idx):
+        canvas = self.get_canvas()
+        if canvas and 0 <= idx < len(canvas.layer_stack.layers):
+            layer = canvas.layer_stack.layers[idx]
+            layer.visible = not layer.visible
+            canvas._refresh()
+            self.refresh()
+
+    def _toggle_lock(self, idx):
+        canvas = self.get_canvas()
+        if canvas and 0 <= idx < len(canvas.layer_stack.layers):
+            layer = canvas.layer_stack.layers[idx]
+            layer.locked = not layer.locked
+            self.refresh()
+
     def _row_changed(self, row):
         canvas = self.get_canvas()
         if canvas and row >= 0:
@@ -252,6 +309,7 @@ class LayerPanel(QWidget):
         canvas = self.get_canvas()
         if canvas and canvas.layer_stack.active:
             canvas.layer_stack.active.blend_mode = mode
+            canvas._refresh()
 
     def _opacity_changed(self, val):
         canvas = self.get_canvas()
@@ -701,3 +759,70 @@ class PathPanel(QWidget):
         p.strokePath(qp, pen)
         p.end()
         canvas._refresh()
+
+
+class NavigatorPanel(QWidget):
+    def __init__(self, canvas_getter, parent=None):
+        super().__init__(parent)
+        self.get_canvas = canvas_getter
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(4)
+
+        self.preview_label = QLabel()
+        self.preview_label.setAlignment(Qt.AlignCenter)
+        self.preview_label.setMinimumSize(120, 90)
+        self.preview_label.setStyleSheet("""
+            QLabel {
+                background: #0a0a0a;
+                border: 1px solid #222;
+                border-radius: 2px;
+            }
+        """)
+        layout.addWidget(self.preview_label)
+
+        zoom_row = QHBoxLayout()
+        zoom_out_btn = QPushButton("\u2212")
+        zoom_out_btn.setFixedSize(24, 24)
+        zoom_out_btn.clicked.connect(self._zoom_out)
+        zoom_row.addWidget(zoom_out_btn)
+
+        self.zoom_label = QLabel("100%")
+        self.zoom_label.setAlignment(Qt.AlignCenter)
+        zoom_row.addWidget(self.zoom_label)
+
+        zoom_in_btn = QPushButton("+")
+        zoom_in_btn.setFixedSize(24, 24)
+        zoom_in_btn.clicked.connect(self._zoom_in)
+        zoom_row.addWidget(zoom_in_btn)
+
+        fit_btn = QPushButton("Fit")
+        fit_btn.setFixedSize(36, 24)
+        fit_btn.clicked.connect(self._zoom_fit)
+        zoom_row.addWidget(fit_btn)
+
+        layout.addLayout(zoom_row)
+
+    def refresh(self):
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+        composite = canvas.layer_stack.composite()
+        if composite and not composite.isNull():
+            preview = composite.scaled(160, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.preview_label.setPixmap(QPixmap.fromImage(preview))
+
+    def _zoom_in(self):
+        canvas = self.get_canvas()
+        if canvas:
+            canvas.zoom_in()
+
+    def _zoom_out(self):
+        canvas = self.get_canvas()
+        if canvas:
+            canvas.zoom_out()
+
+    def _zoom_fit(self):
+        canvas = self.get_canvas()
+        if canvas:
+            canvas.zoom_fit()

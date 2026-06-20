@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QIcon
 from editor.app_ui import MainWindow
 from editor.resources import apply_dark_theme
-from editor.splash import show_splash_then_main
 from editor.i18n import _
 
 
@@ -26,8 +25,7 @@ def main():
 
     window = MainWindow()
     window.setWindowTitle(_("reverseaffinite Photo - [Untitled]"))
-
-    show_splash_then_main(app, window, 2000)
+    window.show()
 
     sys.exit(app.exec_())
 

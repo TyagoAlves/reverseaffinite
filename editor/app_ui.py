@@ -1,18 +1,18 @@
 import os
-from PyQt5.QtCore import Qt, QSize, QSettings
-from PyQt5.QtGui import QColor, QKeySequence, QFont, QIcon, QFontDatabase, QPixmap
+from PyQt5.QtCore import Qt, QSize, QSettings, QRectF
+from PyQt5.QtGui import QColor, QKeySequence, QFont, QIcon, QFontDatabase, QPixmap, QPainter, QBrush, QPen
 from PyQt5.QtWidgets import (
     QMainWindow, QAction, QFileDialog, QColorDialog,
     QToolBar, QToolButton, QSpinBox, QLabel, QComboBox,
     QSlider, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QInputDialog, QMenu, QStatusBar, QDockWidget,
-    QButtonGroup, QFrame, QScroller, QScrollArea,
+    QInputDialog, QMenu, QStatusBar, QDockWidget, QTabWidget,
+    QButtonGroup, QFrame, QScrollArea,
     QSplitter, QDialog, QGridLayout, QCheckBox, QGroupBox,
-    QApplication, QMessageBox,
+    QApplication, QMessageBox, QDialogButtonBox, QFormLayout, QLineEdit,
 )
 
 from .canvas import CanvasView
-from .panels import ColorPanel, LayerPanel, HistoryPanel, ToolOptionsPanel
+from .panels import ColorPanel, LayerPanel, HistoryPanel, ToolOptionsPanel, NavigatorPanel
 from .tools import TOOL_LIST
 from .settings import SettingsManager
 from .preferences_dialog import PreferencesDialog
@@ -25,7 +25,7 @@ class ToolPalette(QWidget):
     def __init__(self, canvas_getter, parent=None):
         super().__init__(parent)
         self.get_canvas = canvas_getter
-        self.setFixedWidth(44)
+        self.setFixedWidth(46)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(1)
@@ -36,38 +36,95 @@ class ToolPalette(QWidget):
         self.tool_buttons = {}
 
         for group_name, tools in TOOL_LIST:
-            label = QLabel(group_name)
-            label.setStyleSheet("color: #888; font-size: 9px; padding: 2px 0;")
-            label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(label)
-
-            for tool_cls in tools:
+            for i, tool_cls in enumerate(tools):
                 btn = QToolButton()
                 btn.setCheckable(True)
                 btn.setToolTip(f"{tool_cls.name} ({tool_cls.shortcut})")
                 btn.setText(tool_cls.shortcut)
-                btn.setFixedSize(36, 28)
+                btn.setFixedSize(38, 28)
                 btn.setStyleSheet("""
-                    QToolButton { 
-                        border: 1px solid #555; border-radius: 3px; 
+                    QToolButton {
+                        border: 1px solid #2a2a2a; border-radius: 3px;
                         font-weight: bold; font-size: 11px;
-                        background: #3a3a3a; color: #ccc;
+                        background: #1a1a1a; color: #c0c0c0;
+                        font-family: 'Segoe UI', 'Inter', sans-serif;
                     }
-                    QToolButton:checked { 
-                        background: #4a6a9a; color: #fff; border-color: #6a8aba;
+                    QToolButton:checked {
+                        background: #3a8ac4; color: #fff; border-color: #5a9ad4;
                     }
-                    QToolButton:hover { background: #4a4a4a; }
+                    QToolButton:hover:!checked {
+                        background: #2a2a2a; border-color: #444;
+                    }
                 """)
                 btn.clicked.connect(lambda checked, t=tool_cls: self._select_tool(t))
                 self.button_group.addButton(btn)
                 layout.addWidget(btn)
                 self.tool_buttons[tool_cls.name] = btn
 
+            # Separator after each group (except last)
+            if group_name != TOOL_LIST[-1][0]:
+                sep = QFrame()
+                sep.setFrameShape(QFrame.HLine)
+                sep.setStyleSheet("color: #222; max-height: 1px; margin: 2px 4px;")
+                layout.addWidget(sep)
+
         layout.addStretch()
+
+        # Foreground/Background color swatches at bottom (like Photoshop)
+        self.fg_btn = QPushButton()
+        self.fg_btn.setFixedSize(38, 38)
+        self.fg_btn.setToolTip("Foreground Color")
+        self.fg_btn.setCursor(Qt.PointingHandCursor)
+        self.bg_btn = QPushButton()
+        self.bg_btn.setFixedSize(38, 38)
+        self.bg_btn.setToolTip("Background Color")
+        self.bg_btn.setCursor(Qt.PointingHandCursor)
+
+        self.fg_btn.clicked.connect(lambda: self._pick_color(True))
+        self.bg_btn.clicked.connect(lambda: self._pick_color(False))
+
+        self.fg_color = QColor(0, 0, 0)
+        self.bg_color = QColor(255, 255, 255)
+        self._update_swatches()
+
+        swatch_layout = QHBoxLayout()
+        swatch_layout.setContentsMargins(0, 0, 0, 0)
+        swatch_layout.setSpacing(1)
+        swatch_layout.addWidget(self.fg_btn)
+        swatch_layout.addWidget(self.bg_btn)
+        layout.addLayout(swatch_layout)
 
         # Default: first tool selected
         if self.button_group.buttons():
             self.button_group.buttons()[0].setChecked(True)
+
+    def _update_swatches(self):
+        self.fg_btn.setStyleSheet(
+            f"background-color: {self.fg_color.name()}; border: 2px solid #444; border-radius: 3px;"
+        )
+        self.bg_btn.setStyleSheet(
+            f"background-color: {self.bg_color.name()}; border: 2px solid #444; border-radius: 3px;"
+        )
+
+    def _pick_color(self, fg):
+        c = QColorDialog.getColor(self.fg_color if fg else self.bg_color, self)
+        if c.isValid():
+            if fg:
+                self.fg_color = c
+            else:
+                self.bg_color = c
+            self._update_swatches()
+            canvas = self.get_canvas()
+            if canvas:
+                if fg:
+                    canvas.set_foreground_color(c)
+                else:
+                    canvas.set_background_color(c)
+
+    def set_colors(self, fg, bg):
+        self.fg_color = fg
+        self.bg_color = bg
+        self._update_swatches()
 
     def select_tool_by_name(self, tool_name):
         btn = self.tool_buttons.get(tool_name)
@@ -85,6 +142,7 @@ class GuideDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("New Guide")
         self.resize(280, 120)
+        self.setStyleSheet("QDialog { background: #121212; }")
 
         layout = QVBoxLayout(self)
         self.orientation_combo = QComboBox()
@@ -122,10 +180,12 @@ class FilterGalleryDialog(QDialog):
         self.canvas = canvas
         self.setWindowTitle("Filter Gallery")
         self.resize(800, 500)
+        self.setStyleSheet("QDialog { background: #121212; }")
 
         layout = QHBoxLayout(self)
 
         left_panel = QWidget()
+        left_panel.setStyleSheet("background: #121212;")
         left_layout = QVBoxLayout(left_panel)
 
         categories = {
@@ -163,7 +223,7 @@ class FilterGalleryDialog(QDialog):
 
         self.preview_label = QLabel("Preview")
         self.preview_label.setAlignment(Qt.AlignCenter)
-        self.preview_label.setStyleSheet("background: #222; border: 1px solid #555;")
+        self.preview_label.setStyleSheet("background: #0a0a0a; border: 1px solid #333; color: #666;")
 
         layout.addWidget(left_panel, 1)
         layout.addWidget(self.preview_label, 2)
@@ -273,6 +333,7 @@ class ExportDialog(QDialog):
         self.canvas = canvas
         self.setWindowTitle("Export Image")
         self.resize(450, 300)
+        self.setStyleSheet("QDialog { background: #121212; }")
 
         layout = QVBoxLayout(self)
 
@@ -323,6 +384,7 @@ class ExportDialog(QDialog):
         self.compression_layout.addWidget(self.tiff_comp_group)
 
         self.options_widget = QWidget()
+        self.options_widget.setStyleSheet("background: transparent;")
         opts_layout = QVBoxLayout(self.options_widget)
         opts_layout.addLayout(self.quality_layout)
         opts_layout.addLayout(self.compression_layout)
@@ -350,7 +412,11 @@ class ExportDialog(QDialog):
 
     def _update_options(self):
         ext = self.format_combo.currentData()
-        opts = get_export_options_for_format(ext)
+        try:
+            from .file_io import get_export_options_for_format, FORMAT_REGISTRY
+            opts = get_export_options_for_format(ext)
+        except ImportError:
+            return
 
         has_quality = 'quality' in opts
         has_compression = 'compression' in opts
@@ -385,6 +451,10 @@ class ExportDialog(QDialog):
         raw_size = w * h * bpp
         ratio = 0.3 if ext in ('.jpg', '.webp') else 0.5 if ext == '.png' else 1.0
         if ext == '.psd':
+            try:
+                from .file_io import FORMAT_REGISTRY
+            except ImportError:
+                pass
             num_layers = len(self.canvas.layer_stack.layers)
             estimated = raw_size * (1 + 0.3 * num_layers)
         else:
@@ -396,8 +466,12 @@ class ExportDialog(QDialog):
 
     def _browse(self):
         ext = self.format_combo.currentData()
-        info = FORMAT_REGISTRY.get(ext, {})
-        name = info.get('name', ext.upper())
+        try:
+            from .file_io import FORMAT_REGISTRY
+            info = FORMAT_REGISTRY.get(ext, {})
+            name = info.get('name', ext.upper())
+        except ImportError:
+            name = ext.upper()
         path, _ = QFileDialog.getSaveFileName(self, "Export As", "", f"{name} (*{ext})")
         if path:
             self.path_edit.setText(path)
@@ -406,8 +480,12 @@ class ExportDialog(QDialog):
     def get_options(self):
         ext = self.format_combo.currentData()
         opts = {}
-        info = FORMAT_REGISTRY.get(ext, {})
-        export_opts = info.get('export_options', {})
+        try:
+            from .file_io import FORMAT_REGISTRY
+            info = FORMAT_REGISTRY.get(ext, {})
+            export_opts = info.get('export_options', {})
+        except ImportError:
+            export_opts = {}
 
         if 'quality' in export_opts:
             opts['quality'] = self.quality_slider.value()
@@ -441,7 +519,7 @@ class MainWindow(QMainWindow):
         self.canvas = CanvasView(self)
         self.setCentralWidget(self.canvas)
 
-        # Tool palette (left)
+        # Tool palette (left) with embedded fg/bg swatches
         self.tool_palette = ToolPalette(lambda: self.canvas)
         self.addToolBar(Qt.LeftToolBarArea, self._make_toolbar_wrapper(self.tool_palette))
 
@@ -452,7 +530,7 @@ class MainWindow(QMainWindow):
         self.size_spin = QSpinBox()
         self.size_spin.setRange(1, 5000)
         self.size_spin.setValue(3)
-        self.size_spin.setFixedWidth(60)
+        self.size_spin.setFixedWidth(55)
         self.size_spin.valueChanged.connect(self.canvas.set_tool_size)
         self.tool_options.addWidget(QLabel("  Size:"))
         self.tool_options.addWidget(self.size_spin)
@@ -461,15 +539,15 @@ class MainWindow(QMainWindow):
         self.opacity_spin.setRange(1, 100)
         self.opacity_spin.setValue(100)
         self.opacity_spin.setSuffix("%")
-        self.opacity_spin.setFixedWidth(55)
+        self.opacity_spin.setFixedWidth(50)
         self.opacity_spin.valueChanged.connect(self.canvas.set_tool_opacity)
         self.tool_options.addWidget(QLabel("  Opacity:"))
         self.tool_options.addWidget(self.opacity_spin)
 
         self.tool_options.addSeparator()
         self.color_btn = QPushButton()
-        self.color_btn.setFixedSize(28, 28)
-        self.color_btn.setStyleSheet("background-color: #000; border: 1px solid #888; border-radius: 3px;")
+        self.color_btn.setFixedSize(24, 24)
+        self.color_btn.setStyleSheet("background-color: #000; border: 1px solid #555; border-radius: 2px;")
         self.color_btn.clicked.connect(self._pick_color)
         self.tool_options.addWidget(QLabel("  Color:"))
         self.tool_options.addWidget(self.color_btn)
@@ -479,61 +557,59 @@ class MainWindow(QMainWindow):
         self.font_combo = QComboBox()
         self.font_combo.addItems(QFontDatabase().families())
         self.font_combo.setCurrentText("Arial")
-        self.font_combo.setFixedWidth(120)
+        self.font_combo.setFixedWidth(110)
         self.tool_options.addWidget(self.font_combo)
 
         self.font_size_spin = QSpinBox()
         self.font_size_spin.setRange(1, 999)
         self.font_size_spin.setValue(32)
-        self.font_size_spin.setFixedWidth(50)
+        self.font_size_spin.setFixedWidth(45)
         self.tool_options.addWidget(self.font_size_spin)
 
         self.bold_btn = QToolButton()
         self.bold_btn.setText("B")
         self.bold_btn.setCheckable(True)
-        self.bold_btn.setFixedSize(24, 24)
+        self.bold_btn.setFixedSize(22, 22)
         self.tool_options.addWidget(self.bold_btn)
 
         self.italic_btn = QToolButton()
         self.italic_btn.setText("I")
         self.italic_btn.setCheckable(True)
-        self.italic_btn.setFixedSize(24, 24)
+        self.italic_btn.setFixedSize(22, 22)
         self.tool_options.addWidget(self.italic_btn)
 
         self.underline_btn = QToolButton()
         self.underline_btn.setText("U")
         self.underline_btn.setCheckable(True)
-        self.underline_btn.setFixedSize(24, 24)
+        self.underline_btn.setFixedSize(22, 22)
         self.tool_options.addWidget(self.underline_btn)
 
         self.addToolBar(self.tool_options)
 
-        # Color panel (right dock)
+        # Right side: Tabbed panels (like Affinity Photo)
+        self.right_tabs = QTabWidget()
+        self.right_tabs.setTabPosition(QTabWidget.North)
+
+        # Color panel
         self.color_panel = ColorPanel()
         self.color_panel.colorChanged.connect(self.canvas.set_foreground_color)
-        cdock = QDockWidget("Color", self)
-        cdock.setWidget(self.color_panel)
-        self.addDockWidget(Qt.RightDockWidgetArea, cdock)
+        self.right_tabs.addTab(self.color_panel, "Color")
 
-        # Layer panel (right dock)
+        # Layers panel
         self.layer_panel = LayerPanel(lambda: self.canvas)
-        ldock = QDockWidget("Layers", self)
-        ldock.setWidget(self.layer_panel)
-        self.addDockWidget(Qt.RightDockWidgetArea, ldock)
+        self.right_tabs.addTab(self.layer_panel, "Layers")
 
-        # Navigator (right dock, bottom)
-        nav_label = QLabel("Navigator")
-        nav_label.setAlignment(Qt.AlignCenter)
-        nav_label.setStyleSheet("background: #333; min-height: 120px;")
-        ndock = QDockWidget("Navigator", self)
-        ndock.setWidget(nav_label)
-        self.addDockWidget(Qt.RightDockWidgetArea, ndock)
+        # Navigator panel
+        self.nav_panel = NavigatorPanel(lambda: self.canvas)
+        self.right_tabs.addTab(self.nav_panel, "Navigator")
 
         # History panel
         self.history_panel = HistoryPanel(lambda: self.canvas)
-        hdock = QDockWidget("History", self)
-        hdock.setWidget(self.history_panel)
-        self.addDockWidget(Qt.RightDockWidgetArea, hdock)
+        self.right_tabs.addTab(self.history_panel, "History")
+
+        rdock = QDockWidget("Panels", self)
+        rdock.setWidget(self.right_tabs)
+        self.addDockWidget(Qt.RightDockWidgetArea, rdock)
 
         # Initialize recent files before creating menus
         self.recent_files = []
@@ -552,7 +628,6 @@ class MainWindow(QMainWindow):
         self.canvas.zoom_changed.connect(self._update_zoom_label)
         self.canvas.tool_changed.connect(self._update_tool_label)
         self.canvas.tool_changed.connect(self.tool_palette.select_tool_by_name)
-        self.canvas.layer_stack.layers = self.canvas.layer_stack.layers  # force ref
 
         self.current_path = None
         self._update_dim_label()
@@ -565,7 +640,7 @@ class MainWindow(QMainWindow):
 
     def _sync_color_btn(self, color):
         self.color_btn.setStyleSheet(
-            f"background-color: {color.name()}; border: 1px solid #888; border-radius: 3px;"
+            f"background-color: {color.name()}; border: 1px solid #555; border-radius: 2px;"
         )
 
     def _pick_color(self):
@@ -610,7 +685,7 @@ class MainWindow(QMainWindow):
             c = self.canvas.get_pixel_color(self.canvas.last_point or self.canvas.mapToScene(self.canvas.rect().center()))
             if c:
                 self.info_label.setText(f"R:{c.red():3d} G:{c.green():3d} B:{c.blue():3d}")
-        except:
+        except Exception:
             pass
 
     def create_menus(self):
@@ -619,6 +694,7 @@ class MainWindow(QMainWindow):
         file_m = mb.addMenu("&File")
         file_m.addAction("&New...", self._new_file, QKeySequence.New)
         file_m.addAction("&Open...", self._open_file, QKeySequence.Open)
+        file_m.addAction("&Place Image...", self._place_image, QKeySequence("Ctrl+Shift+P"))
         self.open_recent_menu = file_m.addMenu("Open &Recent")
         self._rebuild_recent_menu()
         file_m.addSeparator()
@@ -756,10 +832,10 @@ class MainWindow(QMainWindow):
         self.tool_label.setFixedWidth(120)
         sb.addPermanentWidget(self.tool_label)
         self.zoom_label = QLabel("100%")
-        self.zoom_label.setFixedWidth(60)
+        self.zoom_label.setFixedWidth(55)
         sb.addPermanentWidget(self.zoom_label)
         self.dim_label = QLabel("800x600")
-        self.dim_label.setFixedWidth(80)
+        self.dim_label.setFixedWidth(75)
         sb.addPermanentWidget(self.dim_label)
         self.coord_label = QLabel("X:    0  Y:    0")
         sb.addPermanentWidget(self.coord_label)
@@ -778,8 +854,10 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"reverseaffinite Photo - [Untitled {w}x{h}]")
         self._update_dim_label()
         self.layer_panel.refresh()
+        self.nav_panel.refresh()
 
     def _open_file(self):
+        from .file_io import get_open_filter
         path, _ = QFileDialog.getOpenFileName(
             self, "Open Image", "",
             get_open_filter()
@@ -791,6 +869,19 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Opened: {path}")
             self._update_dim_label()
             self.layer_panel.refresh()
+            self.nav_panel.refresh()
+
+    def _place_image(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Place Image", "",
+            "Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp);;All Files (*)"
+        )
+        if path:
+            layer = self.canvas.import_image_as_layer(path)
+            if layer:
+                self.statusBar().showMessage(f"Placed: {path}")
+                self.layer_panel.refresh()
+                self.nav_panel.refresh()
 
     def _save_file(self):
         if self.current_path:
@@ -800,6 +891,7 @@ class MainWindow(QMainWindow):
             self._save_as_file()
 
     def _save_as_file(self):
+        from .file_io import get_save_filter
         path, _ = QFileDialog.getSaveFileName(
             self, "Save Image", "",
             get_save_filter()
@@ -869,6 +961,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Opened: {path}")
             self._update_dim_label()
             self.layer_panel.refresh()
+            self.nav_panel.refresh()
 
     def _show_guide_dialog(self):
         dialog = GuideDialog(self)
@@ -879,6 +972,7 @@ class MainWindow(QMainWindow):
                 self.canvas.viewport().update()
 
     def _batch_export_layers(self):
+        from .batch import batch_export_layers
         path, _ = QFileDialog.getSaveFileName(
             self, "Batch Export Layers", "",
             "PNG (*.png);;JPEG (*.jpg);;WebP (*.webp);;TIFF (*.tiff);;BMP (*.bmp)"

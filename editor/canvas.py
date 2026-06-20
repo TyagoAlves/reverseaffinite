@@ -1,3 +1,4 @@
+import os
 from PyQt5.QtCore import Qt, QPointF, QRectF, pyqtSignal, QRect, QTimer, QUrl
 from PyQt5.QtGui import (
     QPainter, QPixmap, QPen, QColor, QImage, QBrush,
@@ -9,12 +10,13 @@ import math
 from collections import deque
 import numpy as np
 
-from .layers import LayerStack
+from .layers import LayerStack, Layer
 from .history import HistoryManager
 from .tools import SHORTCUT_MAP, PencilTool
 from .guides import GuideManager
 from .snapping import SnappingEngine
 from .settings import SettingsManager
+from .file_formats import FORMAT_REGISTRY, get_format_for_filename
 
 
 class CanvasView(QGraphicsView):
@@ -97,6 +99,7 @@ class CanvasView(QGraphicsView):
         composite = self.layer_stack.composite()
         self.pixmap_item.setPixmap(QPixmap.fromImage(composite))
         self.scene.setSceneRect(QRectF(composite.rect()))
+        self.viewport().update()
 
     def _save_state(self, desc="Edit"):
         self.history.push(desc, self.layer_stack.layers, self.layer_stack.active_index)
@@ -116,6 +119,19 @@ class CanvasView(QGraphicsView):
         if not path:
             return False
         try:
+            ext = get_format_for_filename(path)
+            fmt = FORMAT_REGISTRY.get(ext)
+            if fmt and fmt.get('importer'):
+                layer_stack = fmt['importer'](path)
+                if layer_stack and layer_stack.layers:
+                    self.layer_stack = layer_stack
+                    w = self.layer_stack.layers[0].image.width()
+                    h = self.layer_stack.layers[0].image.height()
+                    self.history.clear()
+                    self.history.push(f"Open {path}", self.layer_stack.layers, self.layer_stack.active_index)
+                    self._refresh()
+                    self.zoom_fit()
+                    return True
             img = QImage(path)
             if img.isNull():
                 return False
@@ -132,13 +148,41 @@ class CanvasView(QGraphicsView):
         except Exception:
             return False
 
-    def save_image(self, path):
+    def save_image(self, path, opts=None):
         if not path:
             return False
         try:
-            return self.layer_stack.composite().save(path)
+            ext = get_format_for_filename(path)
+            fmt = FORMAT_REGISTRY.get(ext)
+            if fmt and fmt.get('exporter'):
+                return fmt['exporter'](self.layer_stack, path, opts)
+            composite = self.layer_stack.composite()
+            return composite.save(path)
         except Exception:
             return False
+
+    def import_image_as_layer(self, path):
+        if not path:
+            return None
+        try:
+            img = QImage(path)
+            if img.isNull():
+                return None
+            if img.format() != QImage.Format_ARGB32:
+                img = img.convertToFormat(QImage.Format_ARGB32)
+            name = os.path.splitext(os.path.basename(path))[0]
+            w, h = self.layer_stack.layers[0].image.width(), self.layer_stack.layers[0].image.height()
+            if img.width() != w or img.height() != h:
+                img = img.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+            layer = Layer(w, h, name, Qt.transparent)
+            layer.image = img.copy()
+            self.layer_stack.layers.append(layer)
+            self.layer_stack.active_index = len(self.layer_stack.layers) - 1
+            self._save_state(f"Place {name}")
+            self._refresh()
+            return layer
+        except Exception:
+            return None
 
     def export_png(self, path):
         if not path:
@@ -675,6 +719,30 @@ class CanvasView(QGraphicsView):
         self.draw_crop_overlay(painter)
         self.guide_mgr.draw(painter, self.pixmap_item.pixmap().size())
         self.draw_snap_indicator(painter)
+
+    def drawBackground(self, painter, rect):
+        painter.fillRect(rect, QColor(30, 30, 30))
+        scene_rect = self.scene.sceneRect()
+        if scene_rect.isEmpty():
+            return
+        # Drop shadow behind image
+        shadow_rect = scene_rect.translated(3, 3)
+        painter.fillRect(shadow_rect, QColor(0, 0, 0, 80))
+        # Checkerboard pattern for transparency
+        painter.save()
+        painter.setClipRect(scene_rect)
+        light = QColor(0x1a, 0x1a, 0x1a)
+        dark = QColor(0x0d, 0x0d, 0x0d)
+        s = 16
+        for x in range(int(scene_rect.left()), int(scene_rect.right()), s):
+            for y in range(int(scene_rect.top()), int(scene_rect.bottom()), s):
+                col = light if ((x // s) + (y // s)) % 2 == 0 else dark
+                painter.fillRect(x, y, s, s, col)
+        painter.restore()
+        # 2px border around image
+        painter.setPen(QPen(QColor(10, 10, 10), 2))
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRect(scene_rect)
 
     def drawForeground(self, painter, rect):
         self.draw_overlay(painter)

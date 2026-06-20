@@ -2,67 +2,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QColor, QPainter
 import numpy as np
 
+from .blend_modes import BLEND_FUNCTIONS, blend_normal as _blend_normal
 
-def _blend_normal(b, l):
-    return l
-
-def _blend_multiply(b, l):
-    return b * l
-
-def _blend_screen(b, l):
-    return 1.0 - (1.0 - b) * (1.0 - l)
-
-def _blend_overlay(b, l):
-    mask = b < 0.5
-    return np.where(mask, 2.0 * b * l, 1.0 - 2.0 * (1.0 - b) * (1.0 - l))
-
-def _blend_darken(b, l):
-    return np.minimum(b, l)
-
-def _blend_lighten(b, l):
-    return np.maximum(b, l)
-
-def _blend_color_dodge(b, l):
-    result = np.divide(b, 1.0 - l, out=np.ones_like(b), where=l < 0.999)
-    return np.clip(result, 0.0, 1.0)
-
-def _blend_color_burn(b, l):
-    result = 1.0 - np.divide(1.0 - b, l, out=np.zeros_like(b), where=l > 0.001)
-    return np.clip(result, 0.0, 1.0)
-
-def _blend_hard_light(b, l):
-    mask = l < 0.5
-    return np.where(mask, 2.0 * b * l, 1.0 - 2.0 * (1.0 - b) * (1.0 - l))
-
-def _blend_soft_light(b, l):
-    mask = l < 0.5
-    result = np.where(mask,
-                      2.0 * b * l + b * b * (1.0 - 2.0 * l),
-                      np.sqrt(b) * (2.0 * l - 1.0) + 2.0 * b * (1.0 - l))
-    return np.clip(result, 0.0, 1.0)
-
-def _blend_difference(b, l):
-    return np.abs(b - l)
-
-def _blend_exclusion(b, l):
-    return b + l - 2.0 * b * l
-
-
-BLEND_FUNCS = {
-    "Normal": _blend_normal,
-    "Multiply": _blend_multiply,
-    "Screen": _blend_screen,
-    "Overlay": _blend_overlay,
-    "Darken": _blend_darken,
-    "Lighten": _blend_lighten,
-    "Color Dodge": _blend_color_dodge,
-    "Color Burn": _blend_color_burn,
-    "Hard Light": _blend_hard_light,
-    "Soft Light": _blend_soft_light,
-    "Difference": _blend_difference,
-    "Exclusion": _blend_exclusion,
-}
-
+BLEND_FUNCS = BLEND_FUNCTIONS
 BLEND_MODES = list(BLEND_FUNCS.keys()) + ["Hue", "Saturation", "Color", "Luminosity"]
 
 
@@ -425,7 +367,13 @@ class LayerStack:
             if layer.filter_func:
                 qimg = _float_array_to_qimage(result, w, h)
                 result_qimg = layer.filter_func(qimg, layer.params)
-                result[...] = _qimage_to_float_array(result_qimg)
+                adjusted = _qimage_to_float_array(result_qimg)
+                blend_func = BLEND_FUNCS.get(layer.blend_mode, _blend_normal)
+                blend_rgb = blend_func(result[:, :, :3], adjusted[:, :, :3])
+                alpha = layer.opacity
+                a = alpha
+                result[:, :, :3] = blend_rgb * a + result[:, :, :3] * (1.0 - a)
+                result[:, :, 3] = adjusted[:, :, 3] * a + result[:, :, 3] * (1.0 - a)
             return
         img = layer.image
         iw, ih = img.width(), img.height()
@@ -435,6 +383,18 @@ class LayerStack:
         ptr.setsize(img.sizeInBytes())
         arr = np.frombuffer(ptr, dtype=np.uint8).copy().reshape(ih, iw, 4)
         layer_arr = arr.astype(np.float32) / 255.0
+        if layer.mask is not None and layer.mask_enabled:
+            mw, mh = layer.mask.width(), layer.mask.height()
+            mptr = layer.mask.constBits()
+            mptr.setsize(layer.mask.sizeInBytes())
+            m_arr = np.frombuffer(mptr, dtype=np.uint8).copy().reshape(mh, mw, 4)
+            if mw != w or mh != h:
+                mask_img = layer.mask.scaled(w, h, Qt.IgnoreAspectRatio, Qt.SmoothTransformation)
+                mptr2 = mask_img.constBits()
+                mptr2.setsize(mask_img.sizeInBytes())
+                m_arr = np.frombuffer(mptr2, dtype=np.uint8).copy().reshape(h, w, 4)
+            mask_alpha = m_arr[:, :, 0].astype(np.float32) / 255.0
+            layer_arr[:, :, 3] = layer_arr[:, :, 3] * mask_alpha
         blend_func = BLEND_FUNCS.get(layer.blend_mode, _blend_normal)
         blend_rgb = blend_func(result[:, :, :3], layer_arr[:, :, :3])
         alpha = layer_arr[:, :, 3] * layer.opacity

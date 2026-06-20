@@ -17,16 +17,16 @@ class SplashScreen(QSplashScreen):
     def _render_pixmap(self):
         size = 480, 280
         pix = QPixmap(*size)
-        pix.fill(QColor(30, 30, 30))
+        pix.fill(QColor(0, 0, 0))
 
         p = QPainter(pix)
         p.setRenderHint(QPainter.Antialiasing)
 
-        p.setPen(QPen(QColor(58, 58, 58), 1))
-        p.setBrush(QColor(30, 30, 30))
+        p.setPen(QPen(QColor(34, 34, 34), 1))
+        p.setBrush(QColor(0, 0, 0))
         p.drawRoundedRect(0, 0, size[0] - 1, size[1] - 1, 12, 12)
 
-        p.setPen(QColor(74, 138, 196))
+        p.setPen(QColor(58, 138, 196))
         p.drawLine(20, size[1] - 50, size[0] - 20, size[1] - 50)
 
         icon_path = os.path.join(os.path.dirname(__file__), "..", "assets", "icon.svg")
@@ -34,7 +34,7 @@ class SplashScreen(QSplashScreen):
             icon_pix = QIcon(icon_path).pixmap(64, 64)
             p.drawPixmap((size[0] - 64) // 2, 30, 64, 64, icon_pix)
 
-        p.setPen(QColor(212, 212, 212))
+        p.setPen(QColor(224, 224, 224))
         title_font = QFont("Segoe UI", 22, QFont.Bold)
         p.setFont(title_font)
         p.drawText(QRect(0, 100, size[0], 40), Qt.AlignCenter, _("reverseaffinite"))
