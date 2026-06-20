@@ -76,6 +76,10 @@ class CanvasView(QGraphicsView):
 
         self.pen_path = []
         self.pen_handle_offsets = []
+        self.ruler_dragging_guide = False
+        self.dragging_guide_index = -1
+        self.ruler_drag_orientation = None
+        self.ruler_drag_pos = None
         self.crop_active = False
         self.crop_start = None
         self.crop_end = None
@@ -712,7 +716,7 @@ class CanvasView(QGraphicsView):
         painter.setPen(QColor(255, 255, 0, 200))
         font = QFont("monospace", 8)
         painter.setFont(font)
-        painter.drawText(pos.x() + hs + 2, pos.y() - hs - 2, text)
+        painter.drawText(QPointF(pos.x() + hs + 2, pos.y() - hs - 2), text)
         painter.restore()
 
     def draw_overlay(self, painter):
