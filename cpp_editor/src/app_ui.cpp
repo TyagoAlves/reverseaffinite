@@ -22,7 +22,6 @@
 #include <QLabel>
 #include <QKeySequence>
 
-
 class FilterDialog : public QWidget {
 public:
     explicit FilterDialog(CanvasView *canvas, QWidget *parent = nullptr)
@@ -117,7 +116,6 @@ private:
             canvas_->refresh();
             canvas_->saveState("Brightness/Contrast");
         });
-        layout->addWidget(btn);
         dialog->show();
     }
 
@@ -174,6 +172,8 @@ MainWindow::MainWindow(QWidget *parent)
     setWindowTitle("reverseaffinite");
     resize(1280, 800);
 
+    applyDarkTheme();
+
     canvas_ = new CanvasView(this);
     setCentralWidget(canvas_);
 
@@ -181,9 +181,21 @@ MainWindow::MainWindow(QWidget *parent)
     connect(colorPanel_, &ColorPanel::colorChanged, canvas_, &CanvasView::setForegroundColor);
     connect(colorPanel_, &ColorPanel::bgColorChanged, canvas_, &CanvasView::setBackgroundColor);
 
+    toolPanel_ = new ToolPanel(canvas_);
+
+    layerPanel_ = new LayerPanel(canvas_);
+
     auto *colorDock = new QDockWidget("Color", this);
     colorDock->setWidget(colorPanel_);
     addDockWidget(Qt::RightDockWidgetArea, colorDock);
+
+    auto *layerDock = new QDockWidget("Layers", this);
+    layerDock->setWidget(layerPanel_);
+    addDockWidget(Qt::RightDockWidgetArea, layerDock);
+
+    auto *toolDock = new QDockWidget("Tools", this);
+    toolDock->setWidget(toolPanel_);
+    addDockWidget(Qt::LeftDockWidgetArea, toolDock);
 
     createMenus();
     createToolbar();
@@ -192,6 +204,41 @@ MainWindow::MainWindow(QWidget *parent)
     connect(canvas_, &CanvasView::statusChanged, this, [this](const QString &msg) {
         statusBar()->showMessage(msg);
     });
+
+    connect(canvas_, &CanvasView::mouseMoved, this, &MainWindow::updateCoords);
+
+    connect(layerPanel_, &LayerPanel::refreshLayers, this, [this]() {
+        layerPanel_->refreshLayers();
+    });
+}
+
+void MainWindow::applyDarkTheme()
+{
+    setStyleSheet(R"(
+        QMainWindow, QWidget { background-color: #1a1a2e; color: #e0e0e0; }
+        QMenuBar { background-color: #16162a; color: #ccc; border-bottom: 1px solid #333; }
+        QMenuBar::item:selected { background: #2a2a4a; }
+        QMenu { background-color: #1a1a2e; color: #ccc; border: 1px solid #333; }
+        QMenu::item:selected { background-color: #f97316; color: #fff; }
+        QToolBar { background-color: #16162a; border-bottom: 1px solid #333; spacing: 6px; padding: 2px; }
+        QDockWidget { background-color: #1a1a2e; color: #ccc; }
+        QDockWidget::title { background-color: #16162a; padding: 6px; border-bottom: 1px solid #333; }
+        QStatusBar { background-color: #16162a; border-top: 1px solid #333; color: #888; }
+        QComboBox { background: #2a2a3e; color: #e0e0e0; border: 1px solid #555; padding: 4px; border-radius: 3px; }
+        QComboBox::drop-down { border: none; }
+        QComboBox QAbstractItemView { background: #2a2a3e; color: #e0e0e0; selection-background-color: #f97316; }
+        QSpinBox { background: #2a2a3e; color: #e0e0e0; border: 1px solid #555; border-radius: 3px; padding: 2px; }
+        QPushButton { background: #2a2a3e; color: #e0e0e0; border: 1px solid #555; border-radius: 4px; padding: 4px 8px; }
+        QPushButton:hover { background: #3a3a5e; border-color: #f97316; }
+        QPushButton:checked { background: #f97316; color: #fff; border-color: #f97316; }
+        QScrollBar:vertical { background: #1a1a2e; width: 8px; }
+        QScrollBar::handle:vertical { background: #444; border-radius: 4px; min-height: 20px; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+        QLabel { color: #ccc; }
+        QSlider::groove:horizontal { height: 4px; background: #333; border-radius: 2px; }
+        QSlider::handle:horizontal { background: #f97316; width: 12px; border-radius: 6px; margin: -4px 0; }
+        QFrame { border: none; }
+    )");
 }
 
 void MainWindow::createMenus()
@@ -239,14 +286,6 @@ void MainWindow::createToolbar()
     auto *toolbar = addToolBar("Tools");
     toolbar->setMovable(false);
 
-    toolCombo_ = new QComboBox();
-    toolCombo_->addItems({"pencil", "brush", "eraser", "color_picker", "flood_fill"});
-    connect(toolCombo_, &QComboBox::currentTextChanged, canvas_, &CanvasView::setTool);
-    toolbar->addWidget(new QLabel("Tool:"));
-    toolbar->addWidget(toolCombo_);
-
-    toolbar->addSeparator();
-
     toolbar->addWidget(new QLabel("Size:"));
     sizeSpin_ = new QSpinBox();
     sizeSpin_->setRange(1, 500);
@@ -271,7 +310,6 @@ void MainWindow::createStatusBar()
     infoLabel_ = new QLabel("");
     statusBar()->addPermanentWidget(coordLabel_);
     statusBar()->addPermanentWidget(infoLabel_);
-    connect(canvas_, &CanvasView::mouseMoved, this, &MainWindow::updateCoords);
 }
 
 void MainWindow::updateCoords(double x, double y)
@@ -291,6 +329,7 @@ void MainWindow::newFile()
     if (!ok2) return;
     canvas_->newImage(w, h);
     currentPath_.clear();
+    layerPanel_->refreshLayers();
 }
 
 void MainWindow::openFile()
@@ -300,6 +339,7 @@ void MainWindow::openFile()
     if (!path.isEmpty() && canvas_->openImage(path)) {
         currentPath_ = path;
         statusBar()->showMessage("Opened: " + path);
+        layerPanel_->refreshLayers();
     }
 }
 
@@ -360,6 +400,7 @@ void MainWindow::undo()
         canvas_->history.undo(shots, canvas_->layerStack.activeIndex_);
         restoreLayers(canvas_->layerStack.layers, shots);
         canvas_->refresh();
+        layerPanel_->refreshLayers();
     }
 }
 
@@ -370,6 +411,7 @@ void MainWindow::redo()
         canvas_->history.redo(shots, canvas_->layerStack.activeIndex_);
         restoreLayers(canvas_->layerStack.layers, shots);
         canvas_->refresh();
+        layerPanel_->refreshLayers();
     }
 }
 
@@ -390,6 +432,7 @@ void MainWindow::newLayer()
     canvas_->saveState("New layer");
     canvas_->layerStack.addLayer();
     canvas_->refresh();
+    layerPanel_->refreshLayers();
 }
 
 void MainWindow::dupLayer()
@@ -398,6 +441,7 @@ void MainWindow::dupLayer()
     canvas_->saveState("Duplicate layer");
     canvas_->layerStack.duplicateLayer(idx);
     canvas_->refresh();
+    layerPanel_->refreshLayers();
 }
 
 void MainWindow::mergeVisible()
@@ -405,6 +449,7 @@ void MainWindow::mergeVisible()
     canvas_->saveState("Merge visible");
     canvas_->layerStack.mergeVisible();
     canvas_->refresh();
+    layerPanel_->refreshLayers();
 }
 
 void MainWindow::flatten()
@@ -412,4 +457,5 @@ void MainWindow::flatten()
     canvas_->saveState("Flatten");
     canvas_->layerStack.flatten();
     canvas_->refresh();
+    layerPanel_->refreshLayers();
 }

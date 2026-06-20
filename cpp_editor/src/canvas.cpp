@@ -5,6 +5,7 @@
 #include <QKeyEvent>
 #include <QPainter>
 #include <QFileInfo>
+#include <QScrollBar>
 #include <queue>
 #include <set>
 #include <tuple>
@@ -27,9 +28,25 @@ CanvasView::CanvasView(QWidget *parent)
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setMouseTracking(true);
-    setDragMode(QGraphicsView::ScrollHandDrag);
+
     tool = new PencilTool();
+
+    QPixmap tile(16, 16);
+    QPainter pt(&tile);
+    pt.fillRect(0, 0, 8, 8, QColor(60, 60, 60));
+    pt.fillRect(8, 0, 8, 8, QColor(45, 45, 45));
+    pt.fillRect(0, 8, 8, 8, QColor(45, 45, 45));
+    pt.fillRect(8, 8, 8, 8, QColor(60, 60, 60));
+    pt.end();
+    checkerTile_ = tile;
+
     refresh();
+}
+
+void CanvasView::drawBackground(QPainter *painter, const QRectF &rect)
+{
+    painter->fillRect(rect, QColor(35, 35, 35));
+    painter->drawTiledPixmap(rect, checkerTile_);
 }
 
 void CanvasView::refresh()
@@ -244,6 +261,9 @@ void CanvasView::mousePressEvent(QMouseEvent *event)
         lastPoint_ = pos;
         saveState(tool ? tool->name() : "Edit");
         if (tool) tool->press(this, pos);
+    } else if (event->button() == Qt::MiddleButton) {
+        setCursor(Qt::ClosedHandCursor);
+        lastPoint_ = mapToScene(event->pos());
     }
 }
 
@@ -251,6 +271,15 @@ void CanvasView::mouseMoveEvent(QMouseEvent *event)
 {
     QPointF pos = mapToScene(event->pos());
     emit mouseMoved(pos.x(), pos.y());
+
+    if (event->buttons() & Qt::MiddleButton) {
+        QPointF delta = pos - lastPoint_;
+        horizontalScrollBar()->setValue(horizontalScrollBar()->value() - delta.x());
+        verticalScrollBar()->setValue(verticalScrollBar()->value() - delta.y());
+        lastPoint_ = pos;
+        return;
+    }
+
     if (drawing_ && tool) {
         tool->move(this, lastPoint_, pos);
         lastPoint_ = pos;
@@ -259,6 +288,9 @@ void CanvasView::mouseMoveEvent(QMouseEvent *event)
 
 void CanvasView::mouseReleaseEvent(QMouseEvent *event)
 {
+    if (event->button() == Qt::MiddleButton) {
+        setCursor(Qt::ArrowCursor);
+    }
     if (event->button() == Qt::LeftButton && drawing_) {
         drawing_ = false;
         if (tool) tool->release(this, mapToScene(event->pos()));
@@ -290,5 +322,16 @@ void CanvasView::keyPressEvent(QKeyEvent *event)
         if (event->key() == Qt::Key_Minus) { zoomOut(); return; }
         if (event->key() == Qt::Key_0) { zoomFit(); return; }
     }
+
+    if (!(event->modifiers() & Qt::ControlModifier)) {
+        QString key = event->text().toLower();
+        if (key == "v") { setTool("move"); emit statusChanged("Move Tool"); return; }
+        if (key == "b") { setTool("brush"); emit statusChanged("Brush Tool"); return; }
+        if (key == "p") { setTool("pencil"); emit statusChanged("Pencil Tool"); return; }
+        if (key == "e") { setTool("eraser"); emit statusChanged("Eraser Tool"); return; }
+        if (key == "i") { setTool("color_picker"); emit statusChanged("Color Picker"); return; }
+        if (key == "g") { setTool("flood_fill"); emit statusChanged("Flood Fill"); return; }
+    }
+
     QGraphicsView::keyPressEvent(event);
 }

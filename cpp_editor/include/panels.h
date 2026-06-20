@@ -5,6 +5,11 @@
 #include <QColor>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QVector>
+#include <QVBoxLayout>
+#include <QScrollArea>
+
+class CanvasView;
 
 class ColorSwatch : public QPushButton {
     Q_OBJECT
@@ -46,6 +51,39 @@ private:
     QSpinBox *hSpin_, *sSpin_, *lSpin_;
     QSpinBox *rSpin_, *gSpin_, *bSpin_;
     bool updating_ = false;
+};
+
+class ToolButton : public QPushButton {
+    Q_OBJECT
+public:
+    ToolButton(const QString &text, const QString &tooltip, QWidget *parent = nullptr);
+};
+
+class ToolPanel : public QWidget {
+    Q_OBJECT
+public:
+    explicit ToolPanel(CanvasView *canvas, QWidget *parent = nullptr);
+
+signals:
+    void toolSelected(const QString &toolName);
+
+private:
+    void selectTool(const QString &name);
+    QVector<ToolButton*> buttons_;
+    CanvasView *canvas_;
+};
+
+class LayerPanel : public QWidget {
+    Q_OBJECT
+public:
+    explicit LayerPanel(CanvasView *canvas, QWidget *parent = nullptr);
+
+public slots:
+    void refreshLayers();
+
+private:
+    CanvasView *canvas_;
+    QVBoxLayout *listLayout_;
 };
 
 #endif

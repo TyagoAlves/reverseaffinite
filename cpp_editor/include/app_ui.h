@@ -9,6 +9,8 @@
 
 class CanvasView;
 class ColorPanel;
+class ToolPanel;
+class LayerPanel;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -38,9 +40,12 @@ private:
     void createMenus();
     void createToolbar();
     void createStatusBar();
+    void applyDarkTheme();
 
     CanvasView *canvas_;
     ColorPanel *colorPanel_;
+    ToolPanel *toolPanel_;
+    LayerPanel *layerPanel_;
     QComboBox *toolCombo_;
     QSpinBox *sizeSpin_;
     QPushButton *colorBtn_;
