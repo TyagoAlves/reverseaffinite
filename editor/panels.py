@@ -13,7 +13,8 @@ from PyQt5.QtWidgets import (
     QProgressBar, QMenu, QInputDialog, QApplication, QToolTip,
 )
 
-from .layers import BLEND_MODES, AdjustmentLayer, GroupLayer
+from .layers import BLEND_MODES, AdjustmentLayer, GroupLayer, Layer
+from .i18n import _, get_translator
 
 
 class ColorSwatch(QPushButton):
@@ -44,8 +45,21 @@ class ColorSwatch(QPushButton):
         return self._color
 
     def _pick(self):
-        c = QColorDialog.getColor(self._color, self)
-        if c.isValid():
+        d = QColorDialog(self._color, self)
+        d.setWindowTitle(_("Select Color"))
+        d.setOptions(QColorDialog.DontUseNativeDialog)
+        d.setStyleSheet("""
+            QColorDialog { background-color: #1a1a1a; color: #e0e0e0; }
+            QColorDialog QLabel { color: #c0c0c0; }
+            QColorDialog QSpinBox { background: #222; color: #d0d0d0; border: 1px solid #444; }
+            QColorDialog QLineEdit { background: #222; color: #d0d0d0; border: 1px solid #444; }
+            QColorDialog QPushButton { background: #333; color: #d0d0d0; border: 1px solid #555; padding: 4px 12px; border-radius: 3px; }
+            QColorDialog QPushButton:hover { background: #444; }
+            QColorDialog QComboBox { background: #222; color: #d0d0d0; border: 1px solid #444; }
+            QColorDialog QComboBox QAbstractItemView { background: #222; color: #d0d0d0; selection-background-color: #3a8ac4; }
+        """)
+        if d.exec_() == QColorDialog.Accepted:
+            c = d.selectedColor()
             self._color = c
             self._update_style()
             self.colorPicked.emit(c)
@@ -53,6 +67,7 @@ class ColorSwatch(QPushButton):
 
 class ColorPanel(QWidget):
     colorChanged = pyqtSignal(QColor)
+    bgColorChanged = pyqtSignal(QColor)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -61,10 +76,10 @@ class ColorPanel(QWidget):
         layout.setSpacing(2)
 
         swatch_row = QHBoxLayout()
-        swatch_row.addWidget(QLabel("FG:"))
+        swatch_row.addWidget(QLabel(_("FG:")))
         self.fg = ColorSwatch(QColor(0, 0, 0))
         swatch_row.addWidget(self.fg)
-        swatch_row.addWidget(QLabel("BG:"))
+        swatch_row.addWidget(QLabel(_("BG:")))
         self.bg = ColorSwatch(QColor(255, 255, 255))
         swatch_row.addWidget(self.bg)
         swap_btn = QPushButton("↔")
@@ -74,6 +89,7 @@ class ColorPanel(QWidget):
         layout.addLayout(swatch_row)
 
         self.fg.colorPicked.connect(lambda c: self.colorChanged.emit(c))
+        self.bg.colorPicked.connect(lambda c: self.bgColorChanged.emit(c))
 
         grid = QGridLayout()
         grid.setSpacing(2)
@@ -116,19 +132,22 @@ class ColorPanel(QWidget):
         self.fg.set_color(bg)
         self.bg.set_color(fg)
         self.colorChanged.emit(self.fg.color())
+        self.bgColorChanged.emit(self.bg.color())
 
     def _rgb_changed(self):
         if self._updating:
             return
         c = QColor(self.r_spin.value(), self.g_spin.value(), self.b_spin.value())
-        self._sync(c)
+        self._sync_fg(c)
+        self.colorChanged.emit(c)
 
     def _hsl_changed(self):
         if self._updating:
             return
         c = QColor()
         c.setHsl(self.h_spin.value(), self.s_spin.value(), self.l_spin.value())
-        self._sync(c)
+        self._sync_fg(c)
+        self.colorChanged.emit(c)
 
     def _hex_changed(self, text):
         if self._updating:
@@ -137,11 +156,12 @@ class ColorPanel(QWidget):
             try:
                 c = QColor(f"#{text}")
                 if c.isValid():
-                    self._sync(c)
+                    self._sync_fg(c)
+                    self.colorChanged.emit(c)
             except Exception:
                 pass
 
-    def _sync(self, c):
+    def _sync_fg(self, c):
         self._updating = True
         self.r_spin.setValue(c.red())
         self.g_spin.setValue(c.green())
@@ -152,10 +172,220 @@ class ColorPanel(QWidget):
         self.hex_edit.setText(c.name().lstrip("#"))
         self._updating = False
         self.fg.set_color(c)
-        self.colorChanged.emit(c)
 
     def set_color(self, c):
-        self._sync(c)
+        self._sync_fg(c)
+
+    def set_bg_color(self, c):
+        self.bg.set_color(c)
+
+
+class SwatchesPanel(QWidget):
+    colorSelected = pyqtSignal(QColor)
+    bgColorSelected = pyqtSignal(QColor)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(2)
+
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(QLabel(_("Click: FG  |  Right-click: BG")))
+        layout.addLayout(mode_row)
+
+        grid = QGridLayout()
+        grid.setSpacing(2)
+
+        self._swatches = [
+            ("#000000", "Black"), ("#434343", "Dark Gray 3"), ("#666666", "Dark Gray 2"),
+            ("#999999", "Dark Gray 1"), ("#b7b7b7", "Gray"), ("#cccccc", "Light Gray 1"),
+            ("#d9d9d9", "Light Gray 2"), ("#efefef", "Light Gray 3"), ("#f3f3f3", "Light Gray 4"),
+            ("#ffffff", "White"),
+            ("#d9d9d9", "Gray 10%"), ("#bfbfbf", "Gray 20%"), ("#a6a6a6", "Gray 30%"),
+            ("#8c8c8c", "Gray 40%"), ("#737373", "Gray 50%"), ("#595959", "Gray 60%"),
+            ("#404040", "Gray 70%"), ("#262626", "Gray 80%"), ("#0d0d0d", "Gray 90%"),
+            ("#ff0000", "Red"), ("#ff6600", "Orange"), ("#ffff00", "Yellow"),
+            ("#00ff00", "Green"), ("#00ffff", "Cyan"), ("#0066ff", "Blue"),
+            ("#6600ff", "Purple"), ("#ff00ff", "Magenta"), ("#cc0066", "Pink"),
+            ("#ffcccc", "Light Red"), ("#ffcc99", "Light Orange"), ("#ffffcc", "Light Yellow"),
+            ("#ccffcc", "Light Green"), ("#ccffff", "Light Cyan"), ("#99ccff", "Light Blue"),
+            ("#cc99ff", "Light Purple"), ("#ffccff", "Light Magenta"),
+            ("#993300", "Brown"), ("#669900", "Olive"), ("#003366", "Dark Blue"),
+            ("#330066", "Dark Purple"), ("#660033", "Dark Red"),
+        ]
+
+        self._buttons = []
+        row, col = 0, 0
+        for hex_color, name in self._swatches:
+            btn = QPushButton()
+            btn.setFixedSize(20, 20)
+            btn.setToolTip(name)
+            btn.setStyleSheet(
+                f"background-color: {hex_color}; border: 1px solid #333; "
+                f"border-radius: 2px;"
+            )
+            r, cdiv = divmod(row, 9)
+            btn.clicked.connect(lambda checked, h=hex_color: self._select_color(h, False))
+            btn.setContextMenuPolicy(Qt.CustomContextMenu)
+            btn.customContextMenuRequested.connect(lambda pos, h=hex_color: self._select_color(h, True))
+            grid.addWidget(btn, r, cdiv)
+            self._buttons.append(btn)
+            row += 1
+
+        layout.addLayout(grid)
+        layout.addStretch()
+
+    def _select_color(self, hex_color, is_bg=False):
+        c = QColor(hex_color)
+        if c.isValid():
+            if is_bg:
+                self.bgColorSelected.emit(c)
+            else:
+                self.colorSelected.emit(c)
+
+
+class ChannelsPanel(QWidget):
+    channelSelectionChanged = pyqtSignal(list)
+
+    def __init__(self, canvas_getter, parent=None):
+        super().__init__(parent)
+        self.get_canvas = canvas_getter
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(2)
+
+        layout.addWidget(QLabel(_("Channels:")), 0, Qt.AlignLeft)
+
+        self.channels = [
+            {"name": "RGB", "color": None, "visible": True, "selected": True},
+            {"name": "Red",   "color": "#ff0000", "visible": True, "selected": False},
+            {"name": "Green", "color": "#00ff00", "visible": True, "selected": False},
+            {"name": "Blue",  "color": "#0000ff", "visible": True, "selected": False},
+        ]
+
+        self._rows = []
+        self.list_widget = QListWidget()
+        self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.list_widget.setSpacing(1)
+        self.list_widget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self._show_context_menu)
+        self.list_widget.currentRowChanged.connect(self._selection_changed)
+        layout.addWidget(self.list_widget, 1)
+
+        # Action buttons
+        btn_row = QHBoxLayout()
+        self.load_btn = QPushButton(_("Load as Selection"))
+        self.load_btn.clicked.connect(self._load_selection)
+        btn_row.addWidget(self.load_btn)
+        layout.addLayout(btn_row)
+
+        layout.addStretch()
+
+    def refresh(self):
+        self.list_widget.blockSignals(True)
+        self.list_widget.clear()
+        for i, ch in enumerate(self.channels):
+            item = QListWidgetItem()
+            item.setData(Qt.UserRole, i)
+
+            widget = QWidget()
+            h = QHBoxLayout(widget)
+            h.setContentsMargins(2, 1, 2, 1)
+            h.setSpacing(4)
+
+            vis_btn = QToolButton()
+            vis_btn.setFixedSize(18, 18)
+            vis_btn.setText("👁" if ch["visible"] else " ")
+            vis_btn.setToolTip(_("Toggle channel visibility"))
+            vis_btn.clicked.connect(lambda checked, c=ch: self._toggle_visibility(c))
+            h.addWidget(vis_btn)
+
+            color_box = QLabel()
+            color_box.setFixedSize(14, 14)
+            if ch["color"]:
+                color_box.setStyleSheet(
+                    f"background-color: {ch['color']}; border: 1px solid #555; border-radius: 2px;"
+                )
+            else:
+                color_box.setStyleSheet(
+                    "background: qlineargradient(x1:0,y1:0,x2:1,y2:1,"
+                    "stop:0 #ff0000, stop:0.33 #00ff00, stop:0.66 #0000ff, stop:1 #ffffff);"
+                    "border: 1px solid #555; border-radius: 2px;"
+                )
+            h.addWidget(color_box)
+
+            name_label = QLabel(ch["name"])
+            h.addWidget(name_label, 1)
+
+            if ch["name"] != "RGB":
+                icon_label = QLabel("👁" if ch["visible"] else " ")
+                icon_label.setFixedSize(14, 14)
+                h.addWidget(icon_label)
+
+            item.setSizeHint(widget.sizeHint())
+            self.list_widget.addItem(item)
+            self.list_widget.setItemWidget(item, widget)
+
+        self.list_widget.blockSignals(False)
+
+    def _toggle_visibility(self, ch):
+        if ch["name"] == "RGB":
+            return
+        ch["visible"] = not ch["visible"]
+        self.refresh()
+        canvas = self.get_canvas()
+        if canvas:
+            canvas._refresh()
+
+    def _selection_changed(self, row):
+        for i, ch in enumerate(self.channels):
+            ch["selected"] = (i == row)
+        self.channelSelectionChanged.emit([c["name"] for c in self.channels if c["selected"]])
+
+    def _load_selection(self):
+        row = self.list_widget.currentRow()
+        if row < 0:
+            return
+        ch = self.channels[row]
+        canvas = self.get_canvas()
+        if not canvas or not canvas.layer_stack.active:
+            return
+        from PyQt5.QtGui import QPainterPath
+        path = QPainterPath()
+        w = canvas.layer_stack.active.image.width()
+        h = canvas.layer_stack.active.image.height()
+        path.addRect(0, 0, w, h)
+        canvas.selection_path = path
+        canvas.selection_mask = None
+        canvas._refresh()
+
+    def _show_context_menu(self, pos):
+        item = self.list_widget.itemAt(pos)
+        if not item:
+            return
+        row = item.data(Qt.UserRole)
+        if row < 0:
+            return
+        ch = self.channels[row]
+        menu = QMenu(self)
+        if ch["name"] not in ("RGB",):
+            vis_action = menu.addAction(
+                _("Hide Channel") if ch["visible"] else _("Show Channel")
+            )
+            del_action = menu.addAction(_("Delete Channel"))
+        else:
+            menu.addAction(_("Duplicate Channel"))
+
+        action = menu.exec_(self.list_widget.viewport().mapToGlobal(pos))
+        if ch["name"] not in ("RGB",) and action == vis_action:
+            self._toggle_visibility(ch)
+
+    def visible_channels(self):
+        return [c["name"] for c in self.channels if c["visible"]]
+
+    def active_channels(self):
+        return [c["name"] for c in self.channels if c["selected"]]
 
 
 class LayerPanel(QWidget):
@@ -168,51 +398,178 @@ class LayerPanel(QWidget):
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(2)
 
+        # Blend mode combo
         mode_row = QHBoxLayout()
-        mode_row.addWidget(QLabel("Mode:"))
         self.blend_combo = QComboBox()
         self.blend_combo.addItems(BLEND_MODES)
+        self.blend_combo.setMinimumWidth(100)
         self.blend_combo.currentTextChanged.connect(self._blend_changed)
-        mode_row.addWidget(self.blend_combo)
+        mode_row.addWidget(self.blend_combo, 1)
         layout.addLayout(mode_row)
 
-        opacity_row = QHBoxLayout()
-        opacity_row.addWidget(QLabel("Opacity:"))
+        # Opacity + Fill row
+        props_row = QHBoxLayout()
+        props_row.setSpacing(2)
+
+        self.opacity_label = QLabel(_("Opacity:"))
+        self.opacity_label.setFixedWidth(42)
+        props_row.addWidget(self.opacity_label)
+
         self.opacity_slider = QSlider(Qt.Horizontal)
         self.opacity_slider.setRange(0, 100)
         self.opacity_slider.setValue(100)
         self.opacity_slider.valueChanged.connect(self._opacity_changed)
-        opacity_row.addWidget(self.opacity_slider)
-        self.opacity_label = QLabel("100%")
-        self.opacity_label.setFixedWidth(32)
-        opacity_row.addWidget(self.opacity_label)
-        layout.addLayout(opacity_row)
+        props_row.addWidget(self.opacity_slider, 1)
 
-        btn_row = QHBoxLayout()
-        self.add_btn = QToolButton(); self.add_btn.setText("+")
-        self.add_btn.clicked.connect(self._add_layer)
-        self.del_btn = QToolButton(); self.del_btn.setText("−")
-        self.del_btn.clicked.connect(self._del_layer)
-        self.dup_btn = QToolButton(); self.dup_btn.setText("⧉")
-        self.dup_btn.clicked.connect(self._dup_layer)
-        self.up_btn = QToolButton(); self.up_btn.setText("↑")
-        self.up_btn.clicked.connect(self._move_up)
-        self.down_btn = QToolButton(); self.down_btn.setText("↓")
-        self.down_btn.clicked.connect(self._move_down)
+        self.opacity_value = QLabel("100%")
+        self.opacity_value.setFixedWidth(32)
+        self.opacity_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        props_row.addWidget(self.opacity_value)
 
-        btn_row.addWidget(self.add_btn)
-        btn_row.addWidget(self.del_btn)
-        btn_row.addWidget(self.dup_btn)
-        btn_row.addWidget(self.up_btn)
-        btn_row.addWidget(self.down_btn)
-        layout.addLayout(btn_row)
+        layout.addLayout(props_row)
 
+        fill_row = QHBoxLayout()
+        fill_row.setSpacing(2)
+
+        self.fill_label = QLabel(_("Fill:"))
+        self.fill_label.setFixedWidth(42)
+        fill_row.addWidget(self.fill_label)
+
+        self.fill_slider = QSlider(Qt.Horizontal)
+        self.fill_slider.setRange(0, 100)
+        self.fill_slider.setValue(100)
+        self.fill_slider.valueChanged.connect(self._fill_changed)
+        fill_row.addWidget(self.fill_slider, 1)
+
+        self.fill_value = QLabel("100%")
+        self.fill_value.setFixedWidth(32)
+        self.fill_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        fill_row.addWidget(self.fill_value)
+
+        layout.addLayout(fill_row)
+
+        # Lock buttons row
+        lock_row = QHBoxLayout()
+        lock_row.setSpacing(2)
+
+        self.lock_tp_btn = self._lock_button("◻", _("Lock transparent pixels"))
+        self.lock_tp_btn.clicked.connect(lambda: self._toggle_lock("transparent"))
+        lock_row.addWidget(self.lock_tp_btn)
+
+        self.lock_ip_btn = self._lock_button("✎", _("Lock image pixels"))
+        self.lock_ip_btn.clicked.connect(lambda: self._toggle_lock("image"))
+        lock_row.addWidget(self.lock_ip_btn)
+
+        self.lock_pos_btn = self._lock_button("⇱", _("Lock position"))
+        self.lock_pos_btn.clicked.connect(lambda: self._toggle_lock("position"))
+        lock_row.addWidget(self.lock_pos_btn)
+
+        self.lock_all_btn = self._lock_button("🔒", _("Lock all"))
+        self.lock_all_btn.clicked.connect(lambda: self._toggle_lock("all"))
+        lock_row.addWidget(self.lock_all_btn)
+
+        lock_row.addStretch()
+        layout.addLayout(lock_row)
+
+        # Layer list
         self.list_widget = QListWidget()
         self.list_widget.setSelectionMode(QAbstractItemView.SingleSelection)
         self.list_widget.currentRowChanged.connect(self._row_changed)
-        self.list_widget.setIconSize(QSize(24, 24))
+        self.list_widget.setIconSize(QSize(32, 32))
         self.list_widget.setSpacing(1)
-        layout.addWidget(self.list_widget)
+        self.list_widget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.list_widget.customContextMenuRequested.connect(self._show_context_menu)
+        layout.addWidget(self.list_widget, 1)
+
+        # Action buttons row (Photoshop-style)
+        action_row = QHBoxLayout()
+        action_row.setSpacing(1)
+
+        self.link_btn = self._action_button("🔗", _("Link layers"))
+        action_row.addWidget(self.link_btn)
+
+        self.fx_btn = self._action_button("fx", _("Layer styles"))
+        self.fx_btn.setStyleSheet("font-weight: bold; font-style: italic;")
+        action_row.addWidget(self.fx_btn)
+
+        self.mask_btn = self._action_button("◐", _("Add layer mask"))
+        self.mask_btn.clicked.connect(self._add_mask)
+        action_row.addWidget(self.mask_btn)
+
+        self.adj_btn = self._action_button("●", _("New fill/adjustment layer"))
+        self._setup_adj_menu()
+        action_row.addWidget(self.adj_btn)
+
+        self.group_btn = self._action_button("📁", _("New group"))
+        self.group_btn.clicked.connect(self._add_group)
+        action_row.addWidget(self.group_btn)
+
+        action_row.addStretch()
+
+        self.add_btn = self._action_button("＋", _("New layer"))
+        self.add_btn.clicked.connect(self._add_layer)
+        action_row.addWidget(self.add_btn)
+
+        self.del_btn = self._action_button("🗑", _("Delete layer"))
+        self.del_btn.clicked.connect(self._del_layer)
+        action_row.addWidget(self.del_btn)
+
+        layout.addLayout(action_row)
+
+        get_translator().language_changed.connect(self.retranslate)
+
+    def _lock_button(self, text, tooltip):
+        btn = QToolButton()
+        btn.setText(text)
+        btn.setToolTip(tooltip)
+        btn.setCheckable(True)
+        btn.setFixedSize(24, 22)
+        btn.setStyleSheet(
+            "QToolButton { border: 1px solid #333; border-radius: 2px; padding: 1px; }"
+            "QToolButton:checked { background-color: #444; border: 1px solid #f97316; }"
+        )
+        return btn
+
+    def _action_button(self, text, tooltip):
+        btn = QToolButton()
+        btn.setText(text)
+        btn.setToolTip(tooltip)
+        btn.setFixedSize(24, 22)
+        btn.setStyleSheet(
+            "QToolButton { border: none; border-radius: 2px; padding: 1px; }"
+            "QToolButton:hover { background-color: #333; }"
+        )
+        return btn
+
+    def _setup_adj_menu(self):
+        self.adj_menu = QMenu(self)
+        self.adj_menu.addAction(_("Brightness/Contrast"), lambda: self._add_adj("brightness_contrast"))
+        self.adj_menu.addAction(_("Hue/Saturation"), lambda: self._add_adj("hsl"))
+        self.adj_menu.addAction(_("Levels"), lambda: self._add_adj("levels"))
+        self.adj_menu.addSeparator()
+        self.adj_menu.addAction(_("Solid Color..."), lambda: self._add_adj("solid_color"))
+        self.adj_menu.addAction(_("Gradient..."), lambda: self._add_adj("gradient"))
+        self.adj_btn.setMenu(self.adj_menu)
+        self.adj_btn.setPopupMode(QToolButton.InstantPopup)
+
+    def retranslate(self):
+        self.blend_combo.blockSignals(True)
+        self.blend_combo.clear()
+        self.blend_combo.addItems([_(m) for m in BLEND_MODES])
+        self.blend_combo.blockSignals(False)
+        self.opacity_label.setText(_("Opacity:"))
+        self.fill_label.setText(_("Fill:"))
+        self.lock_tp_btn.setToolTip(_("Lock transparent pixels"))
+        self.lock_ip_btn.setToolTip(_("Lock image pixels"))
+        self.lock_pos_btn.setToolTip(_("Lock position"))
+        self.lock_all_btn.setToolTip(_("Lock all"))
+        self.link_btn.setToolTip(_("Link layers"))
+        self.fx_btn.setToolTip(_("Layer styles"))
+        self.mask_btn.setToolTip(_("Add layer mask"))
+        self.adj_btn.setToolTip(_("New fill/adjustment layer"))
+        self.group_btn.setToolTip(_("New group"))
+        self.add_btn.setToolTip(_("New layer"))
+        self.del_btn.setToolTip(_("Delete layer"))
 
     def _make_layer_item_widget(self, i, layer):
         widget = QWidget()
@@ -221,10 +578,11 @@ class LayerPanel(QWidget):
         h.setSpacing(4)
 
         thumb = QLabel()
-        thumb.setFixedSize(24, 24)
+        thumb.setFixedSize(32, 32)
         thumb.setScaledContents(True)
+        thumb.setStyleSheet("border: 1px solid #333; border-radius: 1px;")
         try:
-            thumb_img = layer.image.scaled(24, 24, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            thumb_img = layer.image.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             thumb.setPixmap(QPixmap.fromImage(thumb_img))
         except Exception:
             pass
@@ -233,23 +591,17 @@ class LayerPanel(QWidget):
         vis_btn = QToolButton()
         vis_btn.setFixedSize(18, 18)
         vis_btn.setText("👁" if layer.visible else " ")
-        vis_btn.setToolTip("Toggle visibility")
+        vis_btn.setToolTip(_("Toggle visibility"))
         vis_btn.clicked.connect(lambda checked, idx=i: self._toggle_visibility(idx))
         h.addWidget(vis_btn)
 
-        lock_btn = QToolButton()
-        lock_btn.setFixedSize(18, 18)
-        lock_btn.setText("🔒" if layer.locked else " ")
-        lock_btn.setToolTip("Toggle lock")
-        lock_btn.clicked.connect(lambda checked, idx=i: self._toggle_lock(idx))
-        h.addWidget(lock_btn)
-
         name_label = QLabel(layer.name)
-        name_label.setFixedHeight(20)
+        name_label.setFixedHeight(22)
         if isinstance(layer, AdjustmentLayer):
             name_label.setText(f"⚡ {layer.name}")
         elif isinstance(layer, GroupLayer):
             name_label.setText(f"📁 {layer.name}")
+        name_label.setStyleSheet("padding: 0px 2px;")
         h.addWidget(name_label, 1)
 
         return widget
@@ -280,8 +632,25 @@ class LayerPanel(QWidget):
             self.blend_combo.blockSignals(False)
             self.opacity_slider.blockSignals(True)
             self.opacity_slider.setValue(int(active.opacity * 100))
-            self.opacity_label.setText(f"{int(active.opacity * 100)}%")
+            self.opacity_value.setText(f"{int(active.opacity * 100)}%")
             self.opacity_slider.blockSignals(False)
+            self.fill_slider.blockSignals(True)
+            self.fill_slider.setValue(int(active.fill * 100))
+            self.fill_value.setText(f"{int(active.fill * 100)}%")
+            self.fill_slider.blockSignals(False)
+
+            self.lock_tp_btn.blockSignals(True)
+            self.lock_tp_btn.setChecked(active.locked)
+            self.lock_ip_btn.blockSignals(True)
+            self.lock_ip_btn.setChecked(active.locked)
+            self.lock_pos_btn.blockSignals(True)
+            self.lock_pos_btn.setChecked(active.locked)
+            self.lock_all_btn.blockSignals(True)
+            self.lock_all_btn.setChecked(active.locked)
+            self.lock_tp_btn.blockSignals(False)
+            self.lock_ip_btn.blockSignals(False)
+            self.lock_pos_btn.blockSignals(False)
+            self.lock_all_btn.blockSignals(False)
 
     def _toggle_visibility(self, idx):
         canvas = self.get_canvas()
@@ -291,12 +660,16 @@ class LayerPanel(QWidget):
             canvas._refresh()
             self.refresh()
 
-    def _toggle_lock(self, idx):
+    def _toggle_lock(self, lock_type):
         canvas = self.get_canvas()
-        if canvas and 0 <= idx < len(canvas.layer_stack.layers):
-            layer = canvas.layer_stack.layers[idx]
-            layer.locked = not layer.locked
-            self.refresh()
+        if not canvas or not canvas.layer_stack.active:
+            return
+        active = canvas.layer_stack.active
+        if lock_type == "all":
+            active.locked = not active.locked
+        else:
+            active.locked = not active.locked
+        self.refresh()
 
     def _row_changed(self, row):
         canvas = self.get_canvas()
@@ -315,7 +688,14 @@ class LayerPanel(QWidget):
         canvas = self.get_canvas()
         if canvas and canvas.layer_stack.active:
             canvas.layer_stack.active.opacity = val / 100.0
-            self.opacity_label.setText(f"{val}%")
+            self.opacity_value.setText(f"{val}%")
+            canvas._refresh()
+
+    def _fill_changed(self, val):
+        canvas = self.get_canvas()
+        if canvas and canvas.layer_stack.active:
+            canvas.layer_stack.active.fill = val / 100.0
+            self.fill_value.setText(f"{val}%")
             canvas._refresh()
 
     def _add_layer(self):
@@ -336,35 +716,94 @@ class LayerPanel(QWidget):
                 canvas._refresh()
                 self.refresh()
 
-    def _dup_layer(self):
+    def _add_adj(self, adj_type):
         canvas = self.get_canvas()
         if canvas:
-            idx = self.list_widget.currentRow()
-            if idx >= 0:
-                canvas._save_state("Duplicate layer")
-                canvas.layer_stack.duplicate_layer(idx)
+            canvas._save_state("Add adjustment")
+            canvas._add_adjustment(adj_type)
+            canvas._refresh()
+            self.refresh()
+
+    def _add_group(self):
+        canvas = self.get_canvas()
+        if canvas:
+            canvas._save_state("New group")
+            canvas.layer_stack.add_group()
+            canvas._refresh()
+            self.refresh()
+
+    def _add_mask(self):
+        canvas = self.get_canvas()
+        if canvas and canvas.layer_stack.active:
+            layer = canvas.layer_stack.active
+            if layer.mask is None:
+                layer.reveal_all_mask()
+            else:
+                layer.delete_mask()
+            canvas._refresh()
+            self.refresh()
+
+    def _show_context_menu(self, pos):
+        item = self.list_widget.itemAt(pos)
+        if not item:
+            return
+        idx = item.data(Qt.UserRole)
+        canvas = self.get_canvas()
+        if not canvas:
+            return
+
+        menu = QMenu(self)
+
+        rename_action = menu.addAction(_("Rename Layer..."))
+        menu.addSeparator()
+        dup_action = menu.addAction(_("Duplicate Layer"))
+        del_action = menu.addAction(_("Delete Layer"))
+        menu.addSeparator()
+        merge_down_action = menu.addAction(_("Merge Down"))
+        merge_visible_action = menu.addAction(_("Merge Visible"))
+        flatten_action = menu.addAction(_("Flatten Image"))
+
+        action = menu.exec_(self.list_widget.viewport().mapToGlobal(pos))
+
+        if action == rename_action:
+            current_name = canvas.layer_stack.layers[idx].name
+            new_name, ok = QInputDialog.getText(self, _("Rename Layer"), _("Name:"), text=current_name)
+            if ok and new_name:
+                canvas.layer_stack.layers[idx].name = new_name
+                self.refresh()
+        elif action == dup_action:
+            canvas._save_state("Duplicate layer")
+            canvas.layer_stack.duplicate_layer(idx)
+            canvas._refresh()
+            self.refresh()
+        elif action == del_action:
+            if len(canvas.layer_stack.layers) > 1:
+                canvas._save_state("Delete layer")
+                canvas.layer_stack.remove_layer(idx)
                 canvas._refresh()
                 self.refresh()
-
-    def _move_up(self):
-        canvas = self.get_canvas()
-        if canvas:
-            idx = self.list_widget.currentRow()
+        elif action == merge_down_action:
             if idx > 0:
-                canvas._save_state("Reorder layer")
-                canvas.layer_stack.move_layer(idx, idx - 1)
+                canvas._save_state("Merge down")
+                below = idx - 1
+                top_img = canvas.layer_stack.layers[idx].image
+                bot_img = canvas.layer_stack.layers[below].image
+                p = QPainter(bot_img)
+                p.drawImage(0, 0, top_img)
+                p.end()
+                canvas.layer_stack.remove_layer(idx)
                 canvas._refresh()
                 self.refresh()
-
-    def _move_down(self):
-        canvas = self.get_canvas()
-        if canvas:
-            idx = self.list_widget.currentRow()
-            if 0 <= idx < len(canvas.layer_stack.layers) - 1:
-                canvas._save_state("Reorder layer")
-                canvas.layer_stack.move_layer(idx, idx + 1)
-                canvas._refresh()
-                self.refresh()
+        elif action == merge_visible_action:
+            canvas._save_state("Merge visible")
+            canvas.layer_stack.merge_visible()
+            canvas._refresh()
+            self.refresh()
+        elif action == flatten_action:
+            canvas._save_state("Flatten")
+            canvas.layer_stack.flatten()
+            canvas._refresh()
+            self.refresh()
 
 
 class GradientPanel(QWidget):
@@ -401,7 +840,7 @@ class HistoryPanel(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)
 
-        self.count_label = QLabel("History: 0 entries")
+        self.count_label = QLabel(_("History: ") + "0" + _(" entries"))
         layout.addWidget(self.count_label)
 
         self.list_widget = QListWidget()
@@ -423,7 +862,7 @@ class HistoryPanel(QWidget):
         if 0 <= history.index < self.list_widget.count():
             self.list_widget.setCurrentRow(history.index)
         self.list_widget.blockSignals(False)
-        self.count_label.setText(f"History: {len(history.stack)} entries")
+        self.count_label.setText(_("History: ") + str(len(history.stack)) + _(" entries"))
 
     def _row_changed(self, row):
         if row < 0:
@@ -447,28 +886,28 @@ class ToolOptionsPanel(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(4, 2, 4, 2)
 
-        layout.addWidget(QLabel("Size:"))
+        layout.addWidget(QLabel(_("Size:")))
         self.size_spin = QSpinBox()
         self.size_spin.setRange(1, 5000)
         self.size_spin.setValue(3)
         self.size_spin.setFixedWidth(60)
         layout.addWidget(self.size_spin)
 
-        layout.addWidget(QLabel("Opacity:"))
+        layout.addWidget(QLabel(_("Opacity:")))
         self.opacity_slider = QSlider(Qt.Horizontal)
         self.opacity_slider.setRange(1, 100)
         self.opacity_slider.setValue(100)
         self.opacity_slider.setFixedWidth(80)
         layout.addWidget(self.opacity_slider)
 
-        layout.addWidget(QLabel("Flow:"))
+        layout.addWidget(QLabel(_("Flow:")))
         self.flow_slider = QSlider(Qt.Horizontal)
         self.flow_slider.setRange(1, 100)
         self.flow_slider.setValue(100)
         self.flow_slider.setFixedWidth(80)
         layout.addWidget(self.flow_slider)
 
-        layout.addWidget(QLabel("Font:"))
+        layout.addWidget(QLabel(_("Font:")))
         self.font_combo = QComboBox()
         self.font_combo.addItems(QFontDatabase().families())
         self.font_combo.setCurrentText("Arial")
@@ -482,19 +921,19 @@ class ToolOptionsPanel(QWidget):
         layout.addWidget(self.font_size_spin)
 
         self.bold_btn = QToolButton()
-        self.bold_btn.setText("B")
+        self.bold_btn.setText(_("B"))
         self.bold_btn.setCheckable(True)
         self.bold_btn.setFixedSize(24, 24)
         layout.addWidget(self.bold_btn)
 
         self.italic_btn = QToolButton()
-        self.italic_btn.setText("I")
+        self.italic_btn.setText(_("I"))
         self.italic_btn.setCheckable(True)
         self.italic_btn.setFixedSize(24, 24)
         layout.addWidget(self.italic_btn)
 
         self.underline_btn = QToolButton()
-        self.underline_btn.setText("U")
+        self.underline_btn.setText(_("U"))
         self.underline_btn.setCheckable(True)
         self.underline_btn.setFixedSize(24, 24)
         layout.addWidget(self.underline_btn)
@@ -796,7 +1235,7 @@ class NavigatorPanel(QWidget):
         zoom_in_btn.clicked.connect(self._zoom_in)
         zoom_row.addWidget(zoom_in_btn)
 
-        fit_btn = QPushButton("Fit")
+        fit_btn = QPushButton(_("Fit"))
         fit_btn.setFixedSize(36, 24)
         fit_btn.clicked.connect(self._zoom_fit)
         zoom_row.addWidget(fit_btn)
@@ -811,6 +1250,10 @@ class NavigatorPanel(QWidget):
         if composite and not composite.isNull():
             preview = composite.scaled(160, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.preview_label.setPixmap(QPixmap.fromImage(preview))
+        self.zoom_label.setText(f"{canvas.zoom_level * 100:.0f}%")
+
+    def set_zoom(self, zoom):
+        self.zoom_label.setText(f"{zoom * 100:.0f}%")
 
     def _zoom_in(self):
         canvas = self.get_canvas()

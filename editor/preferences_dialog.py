@@ -7,6 +7,8 @@ from PyQt5.QtWidgets import (
     QFormLayout,
 )
 
+from .i18n import _, get_translator
+
 
 class ColorButton(QPushButton):
     def __init__(self, color='#000000', parent=None):
@@ -46,26 +48,26 @@ class PreferencesDialog(QDialog):
         super().__init__(parent)
         self._settings = settings
         self._original = settings.all_settings()
-        self.setWindowTitle("Preferences")
+        self.setWindowTitle(_("Preferences"))
         self.resize(520, 440)
 
         layout = QVBoxLayout(self)
 
         self.tabs = QTabWidget()
-        self.tabs.addTab(self._build_general_tab(), "General")
-        self.tabs.addTab(self._build_grid_tab(), "Grid && Guides")
-        self.tabs.addTab(self._build_performance_tab(), "Performance")
-        self.tabs.addTab(self._build_appearance_tab(), "Appearance")
-        self.tabs.addTab(self._build_file_tab(), "File Handling")
+        self.tabs.addTab(self._build_general_tab(), _("General"))
+        self.tabs.addTab(self._build_grid_tab(), _("Grid && Guides"))
+        self.tabs.addTab(self._build_performance_tab(), _("Performance"))
+        self.tabs.addTab(self._build_appearance_tab(), _("Appearance"))
+        self.tabs.addTab(self._build_file_tab(), _("File Handling"))
         layout.addWidget(self.tabs)
 
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        ok_btn = QPushButton("OK")
+        ok_btn = QPushButton(_("OK"))
         ok_btn.clicked.connect(self._on_ok)
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton(_("Cancel"))
         cancel_btn.clicked.connect(self._on_cancel)
-        apply_btn = QPushButton("Apply")
+        apply_btn = QPushButton(_("Apply"))
         apply_btn.clicked.connect(self._on_apply)
         btn_layout.addWidget(ok_btn)
         btn_layout.addWidget(cancel_btn)
@@ -78,47 +80,53 @@ class PreferencesDialog(QDialog):
         self.gen_width = QSpinBox()
         self.gen_width.setRange(1, 20000)
         self.gen_width.setValue(self._original.get('default_width', 800))
-        form.addRow("Default width:", self.gen_width)
+        form.addRow(_("Default width:"), self.gen_width)
         self.gen_height = QSpinBox()
         self.gen_height.setRange(1, 20000)
         self.gen_height.setValue(self._original.get('default_height', 600))
-        form.addRow("Default height:", self.gen_height)
+        form.addRow(_("Default height:"), self.gen_height)
         self.gen_bg_color = ColorButton(self._original.get('default_bg_color', '#ffffff'))
-        form.addRow("Background color:", self.gen_bg_color)
+        form.addRow(_("Background color:"), self.gen_bg_color)
         self.gen_units = QComboBox()
         self.gen_units.addItems(['px', 'in', 'cm', 'mm', 'pt'])
         self.gen_units.setCurrentText(self._original.get('units', 'px'))
-        form.addRow("Units:", self.gen_units)
+        form.addRow(_("Units:"), self.gen_units)
         self.gen_language = QComboBox()
-        self.gen_language.addItems(['system', 'en', 'pt-BR', 'es', 'fr', 'de', 'ja', 'zh'])
-        self.gen_language.setCurrentText(self._original.get('language', 'system'))
-        form.addRow("Language:", self.gen_language)
+        for code, name in get_translator().available_languages():
+            self.gen_language.addItem(name, code)
+        idx = self.gen_language.findData(self._original.get('language', 'system'))
+        if idx >= 0:
+            self.gen_language.setCurrentIndex(idx)
+        else:
+            self.gen_language.insertItem(0, "System", "system")
+            self.gen_language.setCurrentIndex(0)
+        form.addRow(_("Language:"), self.gen_language)
         self.gen_auto_save = QSpinBox()
         self.gen_auto_save.setRange(0, 60)
         self.gen_auto_save.setValue(self._original.get('auto_save_interval', 0))
-        self.gen_auto_save.setSuffix(" min (0=disabled)")
-        form.addRow("Auto-save:", self.gen_auto_save)
+        self.gen_auto_save.setSuffix(_(" min (0=disabled)"))
+        form.addRow(_("Auto-save:"), self.gen_auto_save)
         return w
 
     def _build_grid_tab(self):
         w = QWidget()
         form = QFormLayout(w)
         self.grid_color_btn = ColorButton(self._original.get('grid_color', '#808080'))
-        form.addRow("Grid color:", self.grid_color_btn)
+        form.addRow(_("Grid color:"), self.grid_color_btn)
         self.grid_spacing = QSpinBox()
         self.grid_spacing.setRange(1, 500)
         self.grid_spacing.setValue(self._original.get('grid_spacing', 50))
-        form.addRow("Grid spacing:", self.grid_spacing)
+        form.addRow(_("Grid spacing:"), self.grid_spacing)
         self.grid_style = QComboBox()
-        self.grid_style.addItems(['Lines', 'Dots', 'Crosses'])
+        self.grid_style.addItems([_('Lines'), _('Dots'), _('Crosses')])
         self.grid_style.setCurrentText(self._original.get('grid_style', 'Lines'))
-        form.addRow("Grid style:", self.grid_style)
+        form.addRow(_("Grid style:"), self.grid_style)
         self.guide_color_btn = ColorButton(self._original.get('guide_color', '#4a8ac4'))
-        form.addRow("Guide color:", self.guide_color_btn)
+        form.addRow(_("Guide color:"), self.guide_color_btn)
         self.snap_threshold = QSpinBox()
         self.snap_threshold.setRange(1, 50)
         self.snap_threshold.setValue(self._original.get('snap_threshold', 5))
-        form.addRow("Snap threshold:", self.snap_threshold)
+        form.addRow(_("Snap threshold:"), self.snap_threshold)
         return w
 
     def _build_performance_tab(self):
@@ -127,18 +135,18 @@ class PreferencesDialog(QDialog):
         self.perf_undo = QSpinBox()
         self.perf_undo.setRange(10, 500)
         self.perf_undo.setValue(self._original.get('undo_levels', 100))
-        form.addRow("Undo levels:", self.perf_undo)
+        form.addRow(_("Undo levels:"), self.perf_undo)
         self.perf_cache = QSpinBox()
         self.perf_cache.setRange(64, 4096)
         self.perf_cache.setValue(self._original.get('cache_size_mb', 512))
         self.perf_cache.setSuffix(" MB")
-        form.addRow("Cache size:", self.perf_cache)
+        form.addRow(_("Cache size:"), self.perf_cache)
         self.perf_opengl = QCheckBox()
         self.perf_opengl.setChecked(self._original.get('use_opengl', False))
-        form.addRow("Use OpenGL:", self.perf_opengl)
+        form.addRow(_("Use OpenGL:"), self.perf_opengl)
         self.perf_live = QCheckBox()
         self.perf_live.setChecked(self._original.get('live_preview', True))
-        form.addRow("Live preview:", self.perf_live)
+        form.addRow(_("Live preview:"), self.perf_live)
         return w
 
     def _build_appearance_tab(self):
@@ -147,19 +155,19 @@ class PreferencesDialog(QDialog):
         self.app_theme = QComboBox()
         self.app_theme.addItems(['Dark', 'Light', 'System'])
         self.app_theme.setCurrentText(self._original.get('theme', 'Dark'))
-        form.addRow("Theme:", self.app_theme)
+        form.addRow(_("Theme:"), self.app_theme)
         self.app_font_size = QSpinBox()
         self.app_font_size.setRange(8, 24)
         self.app_font_size.setValue(self._original.get('font_size', 12))
-        form.addRow("Font size:", self.app_font_size)
+        form.addRow(_("Font size:"), self.app_font_size)
         self.app_canvas_bg = QComboBox()
-        self.app_canvas_bg.addItems(['Checkered', 'Solid', 'Custom'])
+        self.app_canvas_bg.addItems([_('Checkered'), _('Solid'), _('Custom')])
         self.app_canvas_bg.setCurrentText(self._original.get('canvas_bg', 'Checkered'))
-        form.addRow("Canvas background:", self.app_canvas_bg)
+        form.addRow(_("Canvas background:"), self.app_canvas_bg)
         self.app_checkered = QComboBox()
-        self.app_checkered.addItems(['Small', 'Medium', 'Large'])
+        self.app_checkered.addItems([_('Small'), _('Medium'), _('Large')])
         self.app_checkered.setCurrentText(self._original.get('checkered_size', 'Medium'))
-        form.addRow("Checkered size:", self.app_checkered)
+        form.addRow(_("Checkered size:"), self.app_checkered)
         return w
 
     def _build_file_tab(self):
@@ -168,18 +176,18 @@ class PreferencesDialog(QDialog):
         self.file_format = QComboBox()
         self.file_format.addItems(['png', 'jpg', 'tiff', 'webp', 'bmp'])
         self.file_format.setCurrentText(self._original.get('default_save_format', 'png'))
-        form.addRow("Default format:", self.file_format)
+        form.addRow(_("Default format:"), self.file_format)
         self.file_jpeg_q = QSpinBox()
         self.file_jpeg_q.setRange(1, 100)
         self.file_jpeg_q.setValue(self._original.get('jpeg_quality', 95))
-        form.addRow("JPEG quality:", self.file_jpeg_q)
+        form.addRow(_("JPEG quality:"), self.file_jpeg_q)
         self.file_png_comp = QSpinBox()
         self.file_png_comp.setRange(0, 9)
         self.file_png_comp.setValue(self._original.get('png_compression', 6))
-        form.addRow("PNG compression:", self.file_png_comp)
+        form.addRow(_("PNG compression:"), self.file_png_comp)
         self.file_layers = QCheckBox()
         self.file_layers.setChecked(self._original.get('include_layers', False))
-        form.addRow("Include layers:", self.file_layers)
+        form.addRow(_("Include layers:"), self.file_layers)
         return w
 
     def _collect(self):
@@ -188,7 +196,7 @@ class PreferencesDialog(QDialog):
             'default_height': self.gen_height.value(),
             'default_bg_color': self.gen_bg_color.color_name(),
             'units': self.gen_units.currentText(),
-            'language': self.gen_language.currentText(),
+            'language': self.gen_language.currentData() or self.gen_language.currentText(),
             'auto_save_interval': self.gen_auto_save.value(),
             'grid_color': self.grid_color_btn.color_name(),
             'grid_spacing': self.grid_spacing.value(),

@@ -35,6 +35,7 @@ class Layer:
         self.visible = True
         self.locked = False
         self.opacity = 1.0
+        self.fill = 1.0
         self.blend_mode = "Normal"
         self.parent_group = None
         self.mask = None
@@ -47,6 +48,7 @@ class Layer:
         l.visible = self.visible
         l.locked = self.locked
         l.opacity = self.opacity
+        l.fill = self.fill
         l.blend_mode = self.blend_mode
         l.parent_group = self.parent_group
         l.mask = self.mask.copy() if self.mask is not None else None
@@ -106,6 +108,7 @@ class AdjustmentLayer(Layer):
         adj.visible = self.visible
         adj.locked = self.locked
         adj.opacity = self.opacity
+        adj.fill = self.fill
         adj.blend_mode = self.blend_mode
         return adj
 
@@ -116,6 +119,7 @@ class GroupLayer:
         self.visible = True
         self.locked = False
         self.opacity = 1.0
+        self.fill = 1.0
         self.blend_mode = "Normal"
         self.children = []
         self.expanded = True
@@ -315,6 +319,7 @@ class LayerStack:
         new_group.visible = group.visible
         new_group.locked = group.locked
         new_group.opacity = group.opacity
+        new_group.fill = group.fill
         new_group.blend_mode = group.blend_mode
         new_group.expanded = group.expanded
         for child in group.children:
@@ -397,6 +402,7 @@ class LayerStack:
             layer_arr[:, :, 3] = layer_arr[:, :, 3] * mask_alpha
         blend_func = BLEND_FUNCS.get(layer.blend_mode, _blend_normal)
         blend_rgb = blend_func(result[:, :, :3], layer_arr[:, :, :3])
+        layer_arr[:, :, 3] = layer_arr[:, :, 3] * layer.fill
         alpha = layer_arr[:, :, 3] * layer.opacity
         a = alpha[:, :, np.newaxis]
         result[:, :, :3] = blend_rgb * a + result[:, :, :3] * (1.0 - a)

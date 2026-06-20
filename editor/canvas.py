@@ -22,6 +22,7 @@ from .file_formats import FORMAT_REGISTRY, get_format_for_filename
 class CanvasView(QGraphicsView):
     mouse_moved = pyqtSignal(float, float)
     color_picked = pyqtSignal(QColor)
+    bg_color_changed = pyqtSignal(QColor)
     status_changed = pyqtSignal(str)
     zoom_changed = pyqtSignal(float)
     history_changed = pyqtSignal()
@@ -214,12 +215,16 @@ class CanvasView(QGraphicsView):
     def set_tool_opacity(self, val):
         self.tool_opacity = val / 100.0
 
+    def set_tool_flow(self, val):
+        self.tool_flow = val / 100.0
+
     def set_foreground_color(self, color):
         self.tool_color = color
         self.color_picked.emit(color)
 
     def set_background_color(self, color):
         self.bg_color = color
+        self.bg_color_changed.emit(color)
 
     def set_drag_mode(self, mode):
         """0=NoDrag, 1=ScrollHandDrag"""

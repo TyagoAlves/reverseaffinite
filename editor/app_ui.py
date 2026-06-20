@@ -12,12 +12,13 @@ from PyQt5.QtWidgets import (
 )
 
 from .canvas import CanvasView
-from .panels import ColorPanel, LayerPanel, HistoryPanel, ToolOptionsPanel, NavigatorPanel
+from .panels import ColorPanel, SwatchesPanel, ChannelsPanel, LayerPanel, HistoryPanel, ToolOptionsPanel, NavigatorPanel
 from .tools import TOOL_LIST
 from .settings import SettingsManager
 from .preferences_dialog import PreferencesDialog
 from .resources import apply_dark_theme
 from .tool_icons import get_tool_icon
+from .i18n import _, get_translator
 
 
 class ToolPalette(QWidget):
@@ -73,13 +74,21 @@ class ToolPalette(QWidget):
 
         layout.addStretch()
 
+        # Foreground/Background swatches (Photoshop-style stacked)
+        color_frame = QFrame()
+        color_frame.setFixedSize(42, 66)
+        color_layout = QVBoxLayout(color_frame)
+        color_layout.setContentsMargins(4, 4, 4, 4)
+        color_layout.setSpacing(1)
+        color_layout.setAlignment(Qt.AlignCenter)
+
         self.fg_btn = QPushButton()
-        self.fg_btn.setFixedSize(36, 36)
-        self.fg_btn.setToolTip("Foreground Color")
+        self.fg_btn.setFixedSize(28, 28)
+        self.fg_btn.setToolTip(_("Foreground Color"))
         self.fg_btn.setCursor(Qt.PointingHandCursor)
         self.bg_btn = QPushButton()
-        self.bg_btn.setFixedSize(36, 36)
-        self.bg_btn.setToolTip("Background Color")
+        self.bg_btn.setFixedSize(28, 28)
+        self.bg_btn.setToolTip(_("Background Color"))
         self.bg_btn.setCursor(Qt.PointingHandCursor)
 
         self.fg_btn.clicked.connect(lambda: self._pick_color(True))
@@ -89,27 +98,75 @@ class ToolPalette(QWidget):
         self.bg_color = QColor(255, 255, 255)
         self._update_swatches()
 
-        swatch_layout = QHBoxLayout()
-        swatch_layout.setContentsMargins(0, 0, 0, 0)
-        swatch_layout.setSpacing(1)
-        swatch_layout.addWidget(self.fg_btn)
-        swatch_layout.addWidget(self.bg_btn)
-        layout.addLayout(swatch_layout)
+        # Stack FG on top, BG slightly offset (Photoshop style)
+        fg_container = QWidget()
+        fg_l = QHBoxLayout(fg_container)
+        fg_l.setContentsMargins(0, 0, 0, 0)
+        fg_l.setAlignment(Qt.AlignCenter)
+        fg_l.addWidget(self.fg_btn)
+
+        bg_container = QWidget()
+        bg_l = QHBoxLayout(bg_container)
+        bg_l.setContentsMargins(0, 0, 0, 0)
+        bg_l.setAlignment(Qt.AlignCenter)
+        bg_l.addWidget(self.bg_btn)
+
+        color_layout.addWidget(fg_container)
+        color_layout.addWidget(bg_container)
+
+        # Swap button (double-arrow)
+        self.swap_btn = QPushButton("↕")
+        self.swap_btn.setFixedSize(16, 14)
+        self.swap_btn.setToolTip(_("Swap colors"))
+        self.swap_btn.setCursor(Qt.PointingHandCursor)
+        self.swap_btn.setStyleSheet(
+            "QPushButton { background: #333; border: 1px solid #555; border-radius: 2px; "
+            "font-size: 9px; padding: 0px; }"
+            "QPushButton:hover { background: #555; }"
+        )
+        self.swap_btn.clicked.connect(self._swap_colors)
+
+        swap_container = QWidget()
+        swap_l = QHBoxLayout(swap_container)
+        swap_l.setContentsMargins(0, 0, 0, 0)
+        swap_l.setAlignment(Qt.AlignCenter)
+        swap_l.addWidget(self.swap_btn)
+
+        color_layout.addWidget(swap_container)
+
+        layout.addWidget(color_frame, 0, Qt.AlignCenter)
 
         if self.button_group.buttons():
             self.button_group.buttons()[0].setChecked(True)
 
     def _update_swatches(self):
+        fg_border = "#888"  # always visible border
+        bg_border = "#888"
         self.fg_btn.setStyleSheet(
-            f"background-color: {self.fg_color.name()}; border: 2px solid #444; border-radius: 3px;"
+            f"background-color: {self.fg_color.name()}; "
+            f"border: 2px solid {fg_border}; border-radius: 3px;"
         )
         self.bg_btn.setStyleSheet(
-            f"background-color: {self.bg_color.name()}; border: 2px solid #444; border-radius: 3px;"
+            f"background-color: {self.bg_color.name()}; "
+            f"border: 2px solid {bg_border}; border-radius: 3px;"
         )
 
     def _pick_color(self, fg):
-        c = QColorDialog.getColor(self.fg_color if fg else self.bg_color, self)
-        if c.isValid():
+        d = QColorDialog(self.fg_color if fg else self.bg_color, self)
+        d.setWindowTitle(_("Select Color"))
+        d.setOptions(QColorDialog.DontUseNativeDialog)
+        d.setStyleSheet("""
+            QColorDialog { background-color: #1a1a1a; color: #e0e0e0; }
+            QColorDialog QLabel { color: #c0c0c0; }
+            QColorDialog QSpinBox { background: #222; color: #d0d0d0; border: 1px solid #444; }
+            QColorDialog QLineEdit { background: #222; color: #d0d0d0; border: 1px solid #444; }
+            QColorDialog QPushButton { background: #333; color: #d0d0d0; border: 1px solid #555; padding: 4px 12px; border-radius: 3px; }
+            QColorDialog QPushButton:hover { background: #444; }
+            QColorDialog QComboBox { background: #222; color: #d0d0d0; border: 1px solid #444; }
+            QColorDialog QComboBox QAbstractItemView { background: #222; color: #d0d0d0; selection-background-color: #3a8ac4; }
+        """)
+        if d.exec_() == QColorDialog.Accepted:
+            c = d.selectedColor()
             if fg:
                 self.fg_color = c
             else:
@@ -121,6 +178,15 @@ class ToolPalette(QWidget):
                     canvas.set_foreground_color(c)
                 else:
                     canvas.set_background_color(c)
+
+    def _swap_colors(self):
+        self.fg_color, self.bg_color = self.bg_color, self.fg_color
+        self._update_swatches()
+        canvas = self.get_canvas()
+        if canvas:
+            canvas.tool_color = self.fg_color
+            canvas.bg_color = self.bg_color
+            canvas.color_picked.emit(self.fg_color)
 
     def set_colors(self, fg, bg):
         self.fg_color = fg
@@ -141,25 +207,25 @@ class ToolPalette(QWidget):
 class GuideDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("New Guide")
+        self.setWindowTitle(_("New Guide"))
         self.resize(280, 120)
         self.setStyleSheet("QDialog { background: #121212; }")
 
         layout = QVBoxLayout(self)
         self.orientation_combo = QComboBox()
-        self.orientation_combo.addItems(["Horizontal", "Vertical"])
-        layout.addWidget(QLabel("Orientation:"))
+        self.orientation_combo.addItems([_("Horizontal"), _("Vertical")])
+        layout.addWidget(QLabel(_("Orientation:")))
         layout.addWidget(self.orientation_combo)
 
         self.position_spin = QSpinBox()
         self.position_spin.setRange(0, 50000)
         self.position_spin.setValue(100)
-        layout.addWidget(QLabel("Position (px):"))
+        layout.addWidget(QLabel(_("Position (px):")))
         layout.addWidget(self.position_spin)
 
         btn_layout = QHBoxLayout()
-        ok_btn = QPushButton("OK")
-        cancel_btn = QPushButton("Cancel")
+        ok_btn = QPushButton(_("OK"))
+        cancel_btn = QPushButton(_("Cancel"))
         btn_layout.addWidget(ok_btn)
         btn_layout.addWidget(cancel_btn)
         layout.addLayout(btn_layout)
@@ -179,7 +245,7 @@ class FilterGalleryDialog(QDialog):
     def __init__(self, canvas, parent=None):
         super().__init__(parent)
         self.canvas = canvas
-        self.setWindowTitle("Filter Gallery")
+        self.setWindowTitle(_("Filter Gallery"))
         self.resize(800, 500)
         self.setStyleSheet("QDialog { background: #121212; }")
 
@@ -190,24 +256,24 @@ class FilterGalleryDialog(QDialog):
         left_layout = QVBoxLayout(left_panel)
 
         categories = {
-            "Adjustments": [
-                ("Brightness / Contrast", self._bc),
-                ("Hue / Saturation", self._hs),
-                ("Levels", self._levels),
-                ("Grayscale", lambda: self._apply_filter("grayscale")),
-                ("Invert", lambda: self._apply_filter("invert")),
-                ("Sepia", lambda: self._apply_filter("sepia")),
+            _("Adjustments"): [
+                (_("Brightness / Contrast"), self._bc),
+                (_("Hue / Saturation"), self._hs),
+                (_("Levels"), self._levels),
+                (_("Grayscale"), lambda: self._apply_filter("grayscale")),
+                (_("Invert"), lambda: self._apply_filter("invert")),
+                (_("Sepia"), lambda: self._apply_filter("sepia")),
             ],
-            "Blur": [
-                ("Gaussian Blur", self._blur),
+            _("Blur"): [
+                (_("Gaussian Blur"), self._blur),
             ],
-            "Sharpen": [
-                ("Sharpen", self._sharpen),
-                ("Edge Detect", lambda: self._apply_filter("edge_detect")),
+            _("Sharpen"): [
+                (_("Sharpen"), self._sharpen),
+                (_("Edge Detect"), lambda: self._apply_filter("edge_detect")),
             ],
-            "Stylize": [
-                ("Pixelate", self._pixelate),
-                ("Posterize", self._posterize),
+            _("Stylize"): [
+                (_("Pixelate"), self._pixelate),
+                (_("Posterize"), self._posterize),
             ],
         }
 
@@ -222,7 +288,7 @@ class FilterGalleryDialog(QDialog):
 
         left_layout.addStretch()
 
-        self.preview_label = QLabel("Preview")
+        self.preview_label = QLabel(_("Preview"))
         self.preview_label.setAlignment(Qt.AlignCenter)
         self.preview_label.setStyleSheet("background: #0a0a0a; border: 1px solid #333; color: #666;")
 
@@ -238,49 +304,49 @@ class FilterGalleryDialog(QDialog):
             self.canvas._refresh()
 
     def _bc(self):
-        self._show_slider_dialog("Brightness / Contrast", [
-            ("Brightness", -255, 255, 0),
-            ("Contrast", 0, 300, 100),
+        self._show_slider_dialog(_("Brightness / Contrast"), [
+            (_("Brightness"), -255, 255, 0),
+            (_("Contrast"), 0, 300, 100),
         ], lambda vals: self._apply_multi([
             ("brightness", vals[0]),
             ("contrast", vals[1] / 100.0),
         ]))
 
     def _hs(self):
-        self._show_slider_dialog("Hue / Saturation", [
-            ("Hue", -180, 180, 0),
-            ("Saturation", 0, 300, 100),
-            ("Lightness", -100, 100, 0),
+        self._show_slider_dialog(_("Hue / Saturation"), [
+            (_("Hue"), -180, 180, 0),
+            (_("Saturation"), 0, 300, 100),
+            (_("Lightness"), -100, 100, 0),
         ], lambda vals: self._apply_multi([
             ("hue_saturation", vals[0], vals[1] / 100.0, vals[2]),
         ]))
 
     def _levels(self):
-        self._show_slider_dialog("Levels", [
-            ("Shadow", 0, 255, 0),
-            ("Mid (gamma)", 10, 990, 100),
-            ("Highlight", 0, 255, 255),
+        self._show_slider_dialog(_("Levels"), [
+            (_("Shadow"), 0, 255, 0),
+            (_("Mid (gamma)"), 10, 990, 100),
+            (_("Highlight"), 0, 255, 255),
         ], lambda vals: self._apply_multi([
             ("levels", vals[0], vals[1] / 100.0, vals[2]),
         ]))
 
     def _blur(self):
-        r, ok = QInputDialog.getInt(self, "Gaussian Blur", "Radius:", 3, 1, 100)
+        r, ok = QInputDialog.getInt(self, _("Gaussian Blur"), _("Radius:"), 3, 1, 100)
         if ok:
             self._apply_filter_arg("gaussian_blur", r)
 
     def _sharpen(self):
-        a, ok = QInputDialog.getDouble(self, "Sharpen", "Amount:", 1.0, 0.1, 10.0)
+        a, ok = QInputDialog.getDouble(self, _("Sharpen"), _("Amount:"), 1.0, 0.1, 10.0)
         if ok:
             self._apply_filter_arg("sharpen", a)
 
     def _pixelate(self):
-        s, ok = QInputDialog.getInt(self, "Pixelate", "Block Size:", 8, 2, 200)
+        s, ok = QInputDialog.getInt(self, _("Pixelate"), _("Block Size:"), 8, 2, 200)
         if ok:
             self._apply_filter_arg("pixelate", s)
 
     def _posterize(self):
-        l, ok = QInputDialog.getInt(self, "Posterize", "Levels:", 4, 2, 64)
+        l, ok = QInputDialog.getInt(self, _("Posterize"), _("Levels:"), 4, 2, 64)
         if ok:
             self._apply_filter_arg("posterize", l)
 
@@ -308,13 +374,13 @@ class FilterGalleryDialog(QDialog):
 
     def _show_slider_dialog(self, title, sliders, on_apply):
         dialog = QDialog(self)
-        dialog.setWindowTitle(title)
+        dialog.setWindowTitle(_(title))
         layout = QVBoxLayout(dialog)
 
         spinboxes = []
         for label, lo, hi, default in sliders:
             row = QHBoxLayout()
-            row.addWidget(QLabel(label + ":"))
+            row.addWidget(QLabel(_(label) + ":"))
             s = QSlider(Qt.Horizontal)
             s.setRange(lo, hi)
             s.setValue(default)
@@ -322,7 +388,7 @@ class FilterGalleryDialog(QDialog):
             layout.addLayout(row)
             spinboxes.append(s)
 
-        btn = QPushButton("Apply")
+        btn = QPushButton(_("Apply"))
         btn.clicked.connect(lambda: (on_apply([s.value() for s in spinboxes]), dialog.close()))
         layout.addWidget(btn)
         dialog.exec_()
@@ -332,7 +398,7 @@ class ExportDialog(QDialog):
     def __init__(self, canvas, parent=None):
         super().__init__(parent)
         self.canvas = canvas
-        self.setWindowTitle("Export Image")
+        self.setWindowTitle(_("Export Image"))
         self.resize(450, 300)
         self.setStyleSheet("QDialog { background: #121212; }")
 
@@ -341,14 +407,14 @@ class ExportDialog(QDialog):
         form = QFormLayout()
 
         self.format_combo = QComboBox()
-        self.format_combo.addItem("PNG (.png)", '.png')
-        self.format_combo.addItem("JPEG (.jpg)", '.jpg')
-        self.format_combo.addItem("WebP (.webp)", '.webp')
-        self.format_combo.addItem("TIFF (.tiff)", '.tiff')
-        self.format_combo.addItem("BMP (.bmp)", '.bmp')
-        self.format_combo.addItem("Photoshop PSD (.psd)", '.psd')
+        self.format_combo.addItem(_("PNG (.png)"), '.png')
+        self.format_combo.addItem(_("JPEG (.jpg)"), '.jpg')
+        self.format_combo.addItem(_("WebP (.webp)"), '.webp')
+        self.format_combo.addItem(_("TIFF (.tiff)"), '.tiff')
+        self.format_combo.addItem(_("BMP (.bmp)"), '.bmp')
+        self.format_combo.addItem(_("Photoshop PSD (.psd)"), '.psd')
         self.format_combo.currentIndexChanged.connect(self._update_options)
-        form.addRow("Format:", self.format_combo)
+        form.addRow(_("Format:"), self.format_combo)
 
         self.quality_layout = QVBoxLayout()
         self.quality_slider = QSlider(Qt.Horizontal)
@@ -359,7 +425,7 @@ class ExportDialog(QDialog):
         q_row = QHBoxLayout()
         q_row.addWidget(self.quality_slider)
         q_row.addWidget(self.quality_label)
-        self.quality_group = QGroupBox("Quality")
+        self.quality_group = QGroupBox(_("Quality"))
         self.quality_group.setLayout(q_row)
         self.quality_layout.addWidget(self.quality_group)
 
@@ -372,13 +438,13 @@ class ExportDialog(QDialog):
         c_row = QHBoxLayout()
         c_row.addWidget(self.compression_slider)
         c_row.addWidget(self.compression_label)
-        self.compression_group = QGroupBox("Compression")
+        self.compression_group = QGroupBox(_("Compression"))
         self.compression_group.setLayout(c_row)
         self.compression_layout.addWidget(self.compression_group)
 
         self.tiff_comp_combo = QComboBox()
         self.tiff_comp_combo.addItems(['none', 'lzw', 'zip'])
-        self.tiff_comp_group = QGroupBox("TIFF Compression")
+        self.tiff_comp_group = QGroupBox(_("TIFF Compression"))
         t_row = QHBoxLayout()
         t_row.addWidget(self.tiff_comp_combo)
         self.tiff_comp_group.setLayout(t_row)
@@ -392,16 +458,16 @@ class ExportDialog(QDialog):
         form.addRow("Options:", self.options_widget)
 
         self.path_edit = QLineEdit()
-        browse_btn = QPushButton("Browse...")
+        browse_btn = QPushButton(_("Browse..."))
         browse_btn.clicked.connect(self._browse)
         path_row = QHBoxLayout()
         path_row.addWidget(self.path_edit)
         path_row.addWidget(browse_btn)
-        form.addRow("Output:", path_row)
+        form.addRow(_("Output:"), path_row)
 
         layout.addLayout(form)
 
-        self.size_label = QLabel("Estimated size: --")
+        self.size_label = QLabel(_("Estimated size: --"))
         layout.addWidget(self.size_label)
 
         btn_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -461,9 +527,9 @@ class ExportDialog(QDialog):
         else:
             estimated = raw_size * ratio
         if estimated > 1024 * 1024:
-            self.size_label.setText(f"Estimated size: {estimated / (1024*1024):.1f} MB")
+            self.size_label.setText(_("Estimated size: ") + f"{estimated / (1024*1024):.1f} MB")
         else:
-            self.size_label.setText(f"Estimated size: {estimated / 1024:.0f} KB")
+            self.size_label.setText(_("Estimated size: ") + f"{estimated / 1024:.0f} KB")
 
     def _browse(self):
         ext = self.format_combo.currentData()
@@ -473,7 +539,7 @@ class ExportDialog(QDialog):
             name = info.get('name', ext.upper())
         except ImportError:
             name = ext.upper()
-        path, _ = QFileDialog.getSaveFileName(self, "Export As", "", f"{name} (*{ext})")
+        path, _ = QFileDialog.getSaveFileName(self, _("Export As"), "", f"{_(name)} (*{ext})")
         if path:
             self.path_edit.setText(path)
             self._update_size_estimate()
@@ -500,16 +566,16 @@ class ExportDialog(QDialog):
     def _export(self):
         path = self.path_edit.text().strip()
         if not path:
-            QMessageBox.warning(self, "Export", "Please select an output path.")
+            QMessageBox.warning(self, _("Export"), _("Please select an output path."))
             return
         ext, opts = self.get_options()
         if not path.lower().endswith(ext):
             path += ext
         if self.canvas.save_image(path, opts):
-            QMessageBox.information(self, "Export", f"Exported successfully to:\n{path}")
+            QMessageBox.information(self, _("Export"), _("Exported successfully to:") + f"\n{path}")
             self.accept()
         else:
-            QMessageBox.critical(self, "Export", "Export failed.")
+            QMessageBox.critical(self, _("Export"), _("Export failed."))
 
 
 class MainWindow(QMainWindow):
@@ -520,12 +586,19 @@ class MainWindow(QMainWindow):
         self.canvas = CanvasView(self)
         self.setCentralWidget(self.canvas)
 
+        self.settings = SettingsManager()
+        self.settings.load()
+        get_translator().language_changed.connect(lambda l: self.retranslate_ui())
+        lang = self.settings.get('language', 'pt_BR')
+        if lang and lang != 'system':
+            get_translator().set_language(lang)
+
         # Tool palette (left) with embedded fg/bg swatches
         self.tool_palette = ToolPalette(lambda: self.canvas)
         self.addToolBar(Qt.LeftToolBarArea, self._make_toolbar_wrapper(self.tool_palette))
 
         # Tool options bar (top)
-        self.tool_options = QToolBar("Tool Options")
+        self.tool_options = QToolBar(_("Tool Options"))
         self.tool_options.setMovable(False)
 
         self.size_spin = QSpinBox()
@@ -533,7 +606,7 @@ class MainWindow(QMainWindow):
         self.size_spin.setValue(3)
         self.size_spin.setFixedWidth(55)
         self.size_spin.valueChanged.connect(self.canvas.set_tool_size)
-        self.tool_options.addWidget(QLabel("  Size:"))
+        self.tool_options.addWidget(QLabel(_("  Size:")))
         self.tool_options.addWidget(self.size_spin)
 
         self.opacity_spin = QSpinBox()
@@ -542,19 +615,28 @@ class MainWindow(QMainWindow):
         self.opacity_spin.setSuffix("%")
         self.opacity_spin.setFixedWidth(50)
         self.opacity_spin.valueChanged.connect(self.canvas.set_tool_opacity)
-        self.tool_options.addWidget(QLabel("  Opacity:"))
+        self.tool_options.addWidget(QLabel(_("  Opacity:")))
         self.tool_options.addWidget(self.opacity_spin)
+
+        self.flow_spin = QSpinBox()
+        self.flow_spin.setRange(1, 100)
+        self.flow_spin.setValue(100)
+        self.flow_spin.setSuffix("%")
+        self.flow_spin.setFixedWidth(50)
+        self.flow_spin.valueChanged.connect(self.canvas.set_tool_flow)
+        self.tool_options.addWidget(QLabel(_("  Flow:")))
+        self.tool_options.addWidget(self.flow_spin)
 
         self.tool_options.addSeparator()
         self.color_btn = QPushButton()
         self.color_btn.setFixedSize(24, 24)
         self.color_btn.setStyleSheet("background-color: #000; border: 1px solid #555; border-radius: 2px;")
         self.color_btn.clicked.connect(self._pick_color)
-        self.tool_options.addWidget(QLabel("  Color:"))
+        self.tool_options.addWidget(QLabel(_("  Color:")))
         self.tool_options.addWidget(self.color_btn)
 
         self.tool_options.addSeparator()
-        self.tool_options.addWidget(QLabel("  Font:"))
+        self.tool_options.addWidget(QLabel(_("  Font:")))
         self.font_combo = QComboBox()
         self.font_combo.addItems(QFontDatabase().families())
         self.font_combo.setCurrentText("Arial")
@@ -587,28 +669,40 @@ class MainWindow(QMainWindow):
 
         self.addToolBar(self.tool_options)
 
-        # Right side: Tabbed panels (like Affinity Photo)
+        # Right side: Tabbed panels (like Photoshop)
         self.right_tabs = QTabWidget()
         self.right_tabs.setTabPosition(QTabWidget.North)
+        self.right_tabs.setTabBarAutoHide(False)
+
+        # Layers panel (most important, shown first)
+        self.layer_panel = LayerPanel(lambda: self.canvas)
+        self.right_tabs.addTab(self.layer_panel, _("Layers"))
 
         # Color panel
         self.color_panel = ColorPanel()
         self.color_panel.colorChanged.connect(self.canvas.set_foreground_color)
-        self.right_tabs.addTab(self.color_panel, "Color")
+        self.color_panel.bgColorChanged.connect(self.canvas.set_background_color)
+        self.right_tabs.addTab(self.color_panel, _("Color"))
 
-        # Layers panel
-        self.layer_panel = LayerPanel(lambda: self.canvas)
-        self.right_tabs.addTab(self.layer_panel, "Layers")
+        # Swatches panel
+        self.swatches_panel = SwatchesPanel()
+        self.swatches_panel.colorSelected.connect(self.canvas.set_foreground_color)
+        self.swatches_panel.bgColorSelected.connect(self.canvas.set_background_color)
+        self.right_tabs.addTab(self.swatches_panel, _("Swatches"))
+
+        # Channels panel
+        self.channels_panel = ChannelsPanel(lambda: self.canvas)
+        self.right_tabs.addTab(self.channels_panel, _("Channels"))
 
         # Navigator panel
         self.nav_panel = NavigatorPanel(lambda: self.canvas)
-        self.right_tabs.addTab(self.nav_panel, "Navigator")
+        self.right_tabs.addTab(self.nav_panel, _("Navigator"))
 
         # History panel
         self.history_panel = HistoryPanel(lambda: self.canvas)
-        self.right_tabs.addTab(self.history_panel, "History")
+        self.right_tabs.addTab(self.history_panel, _("History"))
 
-        rdock = QDockWidget("Panels", self)
+        rdock = QDockWidget(_("Panels"), self)
         rdock.setWidget(self.right_tabs)
         self.addDockWidget(Qt.RightDockWidgetArea, rdock)
 
@@ -625,16 +719,22 @@ class MainWindow(QMainWindow):
         self.canvas.mouse_moved.connect(self._update_coords)
         self.canvas.status_changed.connect(self.statusBar().showMessage)
         self.canvas.color_picked.connect(self._sync_color_btn)
+        self.canvas.color_picked.connect(self._sync_tool_palette_fg)
+        self.canvas.color_picked.connect(self.color_panel.set_color)
+        self.canvas.bg_color_changed.connect(self._sync_tool_palette_bg)
+        self.canvas.bg_color_changed.connect(self.color_panel.set_bg_color)
         self.canvas.history_changed.connect(self.history_panel.refresh)
         self.canvas.zoom_changed.connect(self._update_zoom_label)
+        self.canvas.zoom_changed.connect(self.nav_panel.set_zoom)
         self.canvas.tool_changed.connect(self._update_tool_label)
         self.canvas.tool_changed.connect(self.tool_palette.select_tool_by_name)
 
         self.current_path = None
         self._update_dim_label()
+        self.retranslate_ui()
 
     def _make_toolbar_wrapper(self, widget):
-        tb = QToolBar("Tools")
+        tb = QToolBar(_("Tools"))
         tb.setMovable(False)
         tb.addWidget(widget)
         return tb
@@ -644,9 +744,30 @@ class MainWindow(QMainWindow):
             f"background-color: {color.name()}; border: 1px solid #555; border-radius: 2px;"
         )
 
+    def _sync_tool_palette_fg(self, color):
+        self.tool_palette.fg_color = color
+        self.tool_palette._update_swatches()
+
+    def _sync_tool_palette_bg(self, color):
+        self.tool_palette.bg_color = color
+        self.tool_palette._update_swatches()
+
     def _pick_color(self):
-        color = QColorDialog.getColor(self.canvas.tool_color, self)
-        if color.isValid():
+        d = QColorDialog(self.canvas.tool_color, self)
+        d.setWindowTitle(_("Select Color"))
+        d.setOptions(QColorDialog.DontUseNativeDialog)
+        d.setStyleSheet("""
+            QColorDialog { background-color: #1a1a1a; color: #e0e0e0; }
+            QColorDialog QLabel { color: #c0c0c0; }
+            QColorDialog QSpinBox { background: #222; color: #d0d0d0; border: 1px solid #444; }
+            QColorDialog QLineEdit { background: #222; color: #d0d0d0; border: 1px solid #444; }
+            QColorDialog QPushButton { background: #333; color: #d0d0d0; border: 1px solid #555; padding: 4px 12px; border-radius: 3px; }
+            QColorDialog QPushButton:hover { background: #444; }
+            QColorDialog QComboBox { background: #222; color: #d0d0d0; border: 1px solid #444; }
+            QColorDialog QComboBox QAbstractItemView { background: #222; color: #d0d0d0; selection-background-color: #3a8ac4; }
+        """)
+        if d.exec_() == QColorDialog.Accepted:
+            color = d.selectedColor()
             self.canvas.set_foreground_color(color)
             self._sync_color_btn(color)
             self.color_panel.set_color(color)
@@ -654,19 +775,19 @@ class MainWindow(QMainWindow):
     def _show_about(self):
         icon_path = os.path.join(os.path.dirname(__file__), "..", "assets", "icon.svg")
         msg = QMessageBox(self)
-        msg.setWindowTitle("About reverseaffinite")
+        msg.setWindowTitle(_("About reverseaffinite"))
         msg.setIconPixmap(QIcon(icon_path).pixmap(64, 64) if os.path.exists(icon_path) else QPixmap())
         msg.setText(
-            "<h2>reverseaffinite</h2>"
-            "<p><b>Version 0.1.0</b></p>"
-            "<p>A professional photo editor built with PyQt5.</p>"
-            "<hr>"
-            "<p><i>Inspired by Affinity Photo, Adobe Photoshop, and DaVinci Resolve.</i></p>"
-            "<hr>"
-            "<p style='font-size:11px; color:#888;'>"
-            "Built with Python, PyQt5, NumPy<br>"
-            "© 2026 reverseaffinite"
-            "</p>"
+            _("<h2>reverseaffinite</h2>"
+              "<p><b>Version 0.1.0</b></p>"
+              "<p>A professional photo editor built with PyQt5.</p>"
+              "<hr>"
+              "<p><i>Inspired by Affinity Photo, Adobe Photoshop, and DaVinci Resolve.</i></p>"
+              "<hr>"
+              "<p style='font-size:11px; color:#888;'>"
+              "Built with Python, PyQt5, NumPy<br>"
+              "© 2026 reverseaffinite"
+              "</p>")
         )
         msg.exec_()
 
@@ -681,80 +802,80 @@ class MainWindow(QMainWindow):
         self.tool_label.setText(self.canvas.tool.name)
 
     def _update_coords(self, x, y):
-        self.coord_label.setText(f"X: {int(x):4d}  Y: {int(y):4d}")
+        self.coord_label.setText(_("X: ") + f"{int(x):4d}" + _("  Y: ") + f"{int(y):4d}")
         try:
             c = self.canvas.get_pixel_color(self.canvas.last_point or self.canvas.mapToScene(self.canvas.rect().center()))
             if c:
-                self.info_label.setText(f"R:{c.red():3d} G:{c.green():3d} B:{c.blue():3d}")
+                self.info_label.setText(_("R:") + f"{c.red():3d}" + _(" G:") + f"{c.green():3d}" + _(" B:") + f"{c.blue():3d}")
         except Exception:
             pass
 
     def create_menus(self):
         mb = self.menuBar()
 
-        file_m = mb.addMenu("&File")
-        file_m.addAction("&New...", self._new_file, QKeySequence.New)
-        file_m.addAction("&Open...", self._open_file, QKeySequence.Open)
-        file_m.addAction("&Place Image...", self._place_image, QKeySequence("Ctrl+Shift+P"))
-        self.open_recent_menu = file_m.addMenu("Open &Recent")
+        file_m = mb.addMenu(_("&File"))
+        file_m.addAction(_("&New..."), self._new_file, QKeySequence.New)
+        file_m.addAction(_("&Open..."), self._open_file, QKeySequence.Open)
+        file_m.addAction(_("&Place Image..."), self._place_image, QKeySequence("Ctrl+Shift+P"))
+        self.open_recent_menu = file_m.addMenu(_("Open &Recent"))
         self._rebuild_recent_menu()
         file_m.addSeparator()
-        file_m.addAction("&Save", self._save_file, QKeySequence.Save)
-        file_m.addAction("Save &As...", self._save_as_file, QKeySequence("Ctrl+Shift+S"))
+        file_m.addAction(_("&Save"), self._save_file, QKeySequence.Save)
+        file_m.addAction(_("Save &As..."), self._save_as_file, QKeySequence("Ctrl+Shift+S"))
         file_m.addSeparator()
-        exp_m = file_m.addMenu("&Export")
-        exp_m.addAction("Export &With Options...", self._export_dialog)
+        exp_m = file_m.addMenu(_("&Export"))
+        exp_m.addAction(_("Export &With Options..."), self._export_dialog)
         exp_m.addSeparator()
-        exp_m.addAction("Export as &PNG...", self._export_png)
-        exp_m.addAction("Export as &JPEG...", self._export_jpg)
-        exp_m.addAction("Export as &WebP...", self._export_webp)
-        exp_m.addAction("Export as &PSD...", self._export_psd)
+        exp_m.addAction(_("Export as &PNG..."), self._export_png)
+        exp_m.addAction(_("Export as &JPEG..."), self._export_jpg)
+        exp_m.addAction(_("Export as &WebP..."), self._export_webp)
+        exp_m.addAction(_("Export as &PSD..."), self._export_psd)
         exp_m.addSeparator()
-        exp_m.addAction("Batch Export &Layers...", self._batch_export_layers)
+        exp_m.addAction(_("Batch Export &Layers..."), self._batch_export_layers)
         file_m.addSeparator()
-        file_m.addAction("&Close", self.close, QKeySequence("Ctrl+Q"))
+        file_m.addAction(_("&Close"), self.close, QKeySequence("Ctrl+Q"))
 
-        edit_m = mb.addMenu("&Edit")
-        edit_m.addAction("&Undo", self._undo, QKeySequence.Undo)
-        edit_m.addAction("&Redo", self._redo, QKeySequence("Ctrl+Shift+Z"))
+        edit_m = mb.addMenu(_("&Edit"))
+        edit_m.addAction(_("&Undo"), self._undo, QKeySequence.Undo)
+        edit_m.addAction(_("&Redo"), self._redo, QKeySequence("Ctrl+Shift+Z"))
         edit_m.addSeparator()
-        edit_m.addAction("&Paste", self._paste_image, QKeySequence.Paste)
-        edit_m.addAction("&Fill...", self._fill)
-        edit_m.addAction("&Clear", self._clear)
+        edit_m.addAction(_("&Paste"), self._paste_image, QKeySequence.Paste)
+        edit_m.addAction(_("&Fill..."), self._fill)
+        edit_m.addAction(_("&Clear"), self._clear)
         edit_m.addSeparator()
-        edit_m.addAction("&Preferences...", lambda: None)
+        edit_m.addAction(_("&Preferences..."), self._open_preferences)
 
-        img_m = mb.addMenu("&Image")
-        img_m.addAction("&Resize...", self._resize)
-        img_m.addAction("&Canvas Size...", self._canvas_size)
+        img_m = mb.addMenu(_("&Image"))
+        img_m.addAction(_("&Resize..."), self._resize)
+        img_m.addAction(_("&Canvas Size..."), self._canvas_size)
         img_m.addSeparator()
-        img_m.addAction("&Flatten", self._flatten)
+        img_m.addAction(_("&Flatten"), self._flatten)
 
-        layer_m = mb.addMenu("&Layer")
-        layer_m.addAction("&New Layer", self._new_layer, QKeySequence("Ctrl+Shift+N"))
-        layer_m.addAction("&Duplicate Layer", self._dup_layer)
-        layer_m.addAction("&Delete Layer", self._del_layer)
+        layer_m = mb.addMenu(_("&Layer"))
+        layer_m.addAction(_("&New Layer"), self._new_layer, QKeySequence("Ctrl+Shift+N"))
+        layer_m.addAction(_("&Duplicate Layer"), self._dup_layer)
+        layer_m.addAction(_("&Delete Layer"), self._del_layer)
         layer_m.addSeparator()
-        adj_m = layer_m.addMenu("New Adjustment Layer")
-        adj_m.addAction("Brightness / Contrast", lambda: self._add_adjustment("brightness_contrast"))
-        adj_m.addAction("Hue / Saturation", lambda: self._add_adjustment("hsl"))
-        adj_m.addAction("Levels", lambda: self._add_adjustment("levels"))
+        adj_m = layer_m.addMenu(_("New Adjustment Layer"))
+        adj_m.addAction(_("Brightness / Contrast"), lambda: self._add_adjustment("brightness_contrast"))
+        adj_m.addAction(_("Hue / Saturation"), lambda: self._add_adjustment("hsl"))
+        adj_m.addAction(_("Levels"), lambda: self._add_adjustment("levels"))
         layer_m.addSeparator()
-        layer_m.addAction("Merge &Visible", self._merge_visible)
-        layer_m.addAction("&Flatten Image", self._flatten)
+        layer_m.addAction(_("Merge &Visible"), self._merge_visible)
+        layer_m.addAction(_("&Flatten Image"), self._flatten)
 
-        filter_m = mb.addMenu("F&ilter")
-        filter_m.addAction("&Filter Gallery...", self._show_filter_gallery)
+        filter_m = mb.addMenu(_("F&ilter"))
+        filter_m.addAction(_("&Filter Gallery..."), self._show_filter_gallery)
 
-        view_m = mb.addMenu("&View")
-        view_m.addAction("Zoom &In", self.canvas.zoom_in, QKeySequence("Ctrl++"))
-        view_m.addAction("Zoom &Out", self.canvas.zoom_out, QKeySequence("Ctrl+-"))
-        view_m.addAction("Zoom to &100%", self.canvas.zoom_100, QKeySequence("Ctrl+1"))
-        view_m.addAction("&Fit to Screen", self.canvas.zoom_fit, QKeySequence("Ctrl+0"))
+        view_m = mb.addMenu(_("&View"))
+        view_m.addAction(_("Zoom &In"), self.canvas.zoom_in, QKeySequence("Ctrl++"))
+        view_m.addAction(_("Zoom &Out"), self.canvas.zoom_out, QKeySequence("Ctrl+-"))
+        view_m.addAction(_("Zoom to &100%"), self.canvas.zoom_100, QKeySequence("Ctrl+1"))
+        view_m.addAction(_("&Fit to Screen"), self.canvas.zoom_fit, QKeySequence("Ctrl+0"))
         view_m.addSeparator()
 
-        snap_m = view_m.addMenu("&Snap")
-        self.snap_enable_action = snap_m.addAction("Enable &Snap")
+        snap_m = view_m.addMenu(_("&Snap"))
+        self.snap_enable_action = snap_m.addAction(_("Enable &Snap"))
         self.snap_enable_action.setCheckable(True)
         self.snap_enable_action.setChecked(True)
         self.snap_enable_action.setShortcut(QKeySequence("Ctrl+;"))
@@ -762,75 +883,75 @@ class MainWindow(QMainWindow):
             lambda v: setattr(self.canvas.snapping, 'enabled', v)
         )
 
-        self.snap_grid_action = snap_m.addAction("Snap to &Grid")
+        self.snap_grid_action = snap_m.addAction(_("Snap to &Grid"))
         self.snap_grid_action.setCheckable(True)
         self.snap_grid_action.setChecked(False)
         self.snap_grid_action.triggered.connect(
             lambda v: setattr(self.canvas.snapping, 'snap_to_grid', v)
         )
 
-        self.snap_guides_action = snap_m.addAction("Snap to &Guides")
+        self.snap_guides_action = snap_m.addAction(_("Snap to &Guides"))
         self.snap_guides_action.setCheckable(True)
         self.snap_guides_action.setChecked(True)
         self.snap_guides_action.triggered.connect(
             lambda v: setattr(self.canvas.snapping, 'snap_to_guides', v)
         )
 
-        self.snap_layer_action = snap_m.addAction("Snap to &Layer")
+        self.snap_layer_action = snap_m.addAction(_("Snap to &Layer"))
         self.snap_layer_action.setCheckable(True)
         self.snap_layer_action.setChecked(True)
         self.snap_layer_action.triggered.connect(
             lambda v: setattr(self.canvas.snapping, 'snap_to_layer', v)
         )
 
-        self.snap_doc_action = snap_m.addAction("Snap to Document &Bounds")
+        self.snap_doc_action = snap_m.addAction(_("Snap to Document &Bounds"))
         self.snap_doc_action.setCheckable(True)
         self.snap_doc_action.setChecked(True)
         self.snap_doc_action.triggered.connect(
             lambda v: setattr(self.canvas.snapping, 'snap_to_document', v)
         )
 
-        guides_m = view_m.addMenu("&Guides")
-        self.show_guides_action = guides_m.addAction("Show &Guides")
+        guides_m = view_m.addMenu(_("&Guides"))
+        self.show_guides_action = guides_m.addAction(_("Show &Guides"))
         self.show_guides_action.setCheckable(True)
         self.show_guides_action.setChecked(True)
         self.show_guides_action.triggered.connect(
             lambda v: setattr(self.canvas.guide_mgr, 'visible', v) or self.canvas.viewport().update()
         )
 
-        self.lock_guides_action = guides_m.addAction("&Lock Guides")
+        self.lock_guides_action = guides_m.addAction(_("&Lock Guides"))
         self.lock_guides_action.setCheckable(True)
         self.lock_guides_action.setChecked(False)
         self.lock_guides_action.triggered.connect(
             lambda v: setattr(self.canvas.guide_mgr, 'locked', v)
         )
 
-        guides_m.addAction("&Clear Guides", lambda: (
+        guides_m.addAction(_("&Clear Guides"), lambda: (
             self.canvas.guide_mgr.clear_guides(),
             self.canvas.viewport().update()
         ))
 
-        guides_m.addAction("&New Guide...", self._show_guide_dialog, QKeySequence("Ctrl+Shift+G"))
+        guides_m.addAction(_("&New Guide..."), self._show_guide_dialog, QKeySequence("Ctrl+Shift+G"))
 
         view_m.addSeparator()
-        ga = view_m.addAction("Show &Grid")
+        ga = view_m.addAction(_("Show &Grid"))
         ga.setCheckable(True)
         ga.setChecked(False)
         ga.triggered.connect(lambda v: setattr(self.canvas, 'show_grid', v) or self.canvas.viewport().update())
-        ra = view_m.addAction("Show &Rulers")
+        ra = view_m.addAction(_("Show &Rulers"))
         ra.setCheckable(True)
         ra.setChecked(True)
         ra.triggered.connect(lambda v: setattr(self.canvas, 'show_rulers', v) or self.canvas.viewport().update())
         view_m.addSeparator()
-        view_m.addAction("&Reset View", self.canvas.zoom_fit)
+        view_m.addAction(_("&Reset View"), self.canvas.zoom_fit)
 
-        help_m = mb.addMenu("&Help")
-        help_m.addAction("&About reverseaffinite", self._show_about)
+        help_m = mb.addMenu(_("&Help"))
+        help_m.addAction(_("&About reverseaffinite"), self._show_about)
 
     def create_statusbar(self):
         sb = self.statusBar()
-        sb.showMessage("Ready")
-        self.tool_label = QLabel("Move Tool")
+        sb.showMessage(_("Ready"))
+        self.tool_label = QLabel(_("Move Tool"))
         self.tool_label.setFixedWidth(150)
         sb.addPermanentWidget(self.tool_label)
         self.zoom_label = QLabel("100%")
@@ -839,21 +960,21 @@ class MainWindow(QMainWindow):
         self.dim_label = QLabel("800x600")
         self.dim_label.setFixedWidth(75)
         sb.addPermanentWidget(self.dim_label)
-        self.coord_label = QLabel("X:    0  Y:    0")
+        self.coord_label = QLabel(_("X: ") + "0" + _("  Y: ") + "0")
         sb.addPermanentWidget(self.coord_label)
         self.info_label = QLabel("")
         sb.addPermanentWidget(self.info_label)
 
     def _new_file(self):
-        w, ok = QInputDialog.getInt(self, "New Image", "Width:", 1920, 1, 20000)
+        w, ok = QInputDialog.getInt(self, _("New Image"), _("Width:"), 1920, 1, 20000)
         if not ok:
             return
-        h, ok = QInputDialog.getInt(self, "New Image", "Height:", 1080, 1, 20000)
+        h, ok = QInputDialog.getInt(self, _("New Image"), _("Height:"), 1080, 1, 20000)
         if not ok:
             return
         self.canvas.new_image(w, h)
         self.current_path = None
-        self.setWindowTitle(f"reverseaffinite Photo - [Untitled {w}x{h}]")
+        self.setWindowTitle(_("reverseaffinite Photo - [Untitled ") + f"{w}x{h}]")
         self._update_dim_label()
         self.layer_panel.refresh()
         self.nav_panel.refresh()
@@ -861,68 +982,68 @@ class MainWindow(QMainWindow):
     def _open_file(self):
         from .file_io import get_open_filter
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open Image", "",
+            self, _("Open Image"), "",
             get_open_filter()
         )
         if path and self.canvas.open_image(path):
             self.current_path = path
             self._add_recent_file(path)
-            self.setWindowTitle(f"reverseaffinite Photo - [{path}]")
-            self.statusBar().showMessage(f"Opened: {path}")
+            self.setWindowTitle(_("reverseaffinite Photo - [") + path + "]")
+            self.statusBar().showMessage(_("Opened: ") + path)
             self._update_dim_label()
             self.layer_panel.refresh()
             self.nav_panel.refresh()
 
     def _place_image(self):
         path, _ = QFileDialog.getOpenFileName(
-            self, "Place Image", "",
-            "Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp);;All Files (*)"
+            self, _("Place Image"), "",
+            _("Images (*.png *.jpg *.jpeg *.bmp *.gif *.tiff *.tif *.webp);;All Files (*)")
         )
         if path:
             layer = self.canvas.import_image_as_layer(path)
             if layer:
-                self.statusBar().showMessage(f"Placed: {path}")
+                self.statusBar().showMessage(_("Placed: ") + path)
                 self.layer_panel.refresh()
                 self.nav_panel.refresh()
 
     def _save_file(self):
         if self.current_path:
             self.canvas.save_image(self.current_path)
-            self.statusBar().showMessage(f"Saved: {self.current_path}")
+            self.statusBar().showMessage(_("Saved: ") + self.current_path)
         else:
             self._save_as_file()
 
     def _save_as_file(self):
         from .file_io import get_save_filter
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save Image", "",
+            self, _("Save Image"), "",
             get_save_filter()
         )
         if path:
             self.canvas.save_image(path)
             self.current_path = path
             self._add_recent_file(path)
-            self.setWindowTitle(f"reverseaffinite Photo - [{path}]")
+            self.setWindowTitle(_("reverseaffinite Photo - [") + path + "]")
             self._update_dim_label()
-            self.statusBar().showMessage(f"Saved: {path}")
+            self.statusBar().showMessage(_("Saved: ") + path)
 
     def _export_png(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Export as PNG", "", "PNG (*.png)")
+        path, _ = QFileDialog.getSaveFileName(self, _("Export as PNG"), "", _("PNG (*.png)"))
         if path:
             self.canvas.save_image(path, {'compression': 6})
 
     def _export_jpg(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Export as JPEG", "", "JPEG (*.jpg *.jpeg)")
+        path, _ = QFileDialog.getSaveFileName(self, _("Export as JPEG"), "", _("JPEG (*.jpg *.jpeg)"))
         if path:
             self.canvas.save_image(path, {'quality': 95})
 
     def _export_webp(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Export as WebP", "", "WebP (*.webp)")
+        path, _ = QFileDialog.getSaveFileName(self, _("Export as WebP"), "", _("WebP (*.webp)"))
         if path:
             self.canvas.save_image(path, {'quality': 80})
 
     def _export_psd(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Export as PSD", "", "Photoshop (*.psd)")
+        path, _ = QFileDialog.getSaveFileName(self, _("Export as PSD"), "", _("Photoshop (*.psd)"))
         if path:
             self.canvas.save_image(path)
 
@@ -946,21 +1067,21 @@ class MainWindow(QMainWindow):
             act = self.open_recent_menu.addAction(path)
             act.triggered.connect(lambda checked, p=path: self._open_recent(p))
         if not self.recent_files:
-            act = self.open_recent_menu.addAction("(empty)")
+            act = self.open_recent_menu.addAction(_("(empty)"))
             act.setEnabled(False)
 
     def _open_recent(self, path):
         if not os.path.exists(path):
-            QMessageBox.warning(self, "File Not Found",
-                                "The file no longer exists:\n" + path)
+            QMessageBox.warning(self, _("File Not Found"),
+                                _("The file no longer exists:\n") + path)
             self.recent_files.remove(path)
             self._rebuild_recent_menu()
             return
         if self.canvas.open_image(path):
             self.current_path = path
             self._add_recent_file(path)
-            self.setWindowTitle(f"reverseaffinite Photo - [{path}]")
-            self.statusBar().showMessage(f"Opened: {path}")
+            self.setWindowTitle(_("reverseaffinite Photo - [") + path + "]")
+            self.statusBar().showMessage(_("Opened: ") + path)
             self._update_dim_label()
             self.layer_panel.refresh()
             self.nav_panel.refresh()
@@ -976,17 +1097,44 @@ class MainWindow(QMainWindow):
     def _batch_export_layers(self):
         from .batch import batch_export_layers
         path, _ = QFileDialog.getSaveFileName(
-            self, "Batch Export Layers", "",
-            "PNG (*.png);;JPEG (*.jpg);;WebP (*.webp);;TIFF (*.tiff);;BMP (*.bmp)"
+            self, _("Batch Export Layers"), "",
+            _("PNG (*.png);;JPEG (*.jpg);;WebP (*.webp);;TIFF (*.tiff);;BMP (*.bmp)")
         )
         if not path:
             return
         fmt = path.rsplit('.', 1)[-1] if '.' in path else 'png'
         batch_export_layers(self.canvas.layer_stack, path, fmt, parent=self)
 
+    def _open_preferences(self):
+        dialog = PreferencesDialog(self.settings, self)
+        if dialog.exec_() == QDialog.Accepted:
+            lang = self.settings.get('language', 'pt_BR')
+            if lang and lang != 'system':
+                get_translator().set_language(lang)
+                self.retranslate_ui()
+
+    def retranslate_ui(self):
+        self.setWindowTitle(_("reverseaffinite Photo - [Untitled]"))
+        self._rebuild_menus()
+        self._rebuild_status_bar()
+        self.layer_panel.refresh()
+        self.nav_panel.refresh()
+        self.history_panel.refresh()
+
+    def _rebuild_menus(self):
+        self.menuBar().clear()
+        self.create_menus()
+
+    def _rebuild_status_bar(self):
+        self.coord_label.setText(_("X: ") + "0" + _("  Y: ") + "0")
+        self.info_label.setText(_("R:") + "0" + _(" G:") + "0" + _(" B:") + "0")
+        self.tool_label.setText(self.canvas.tool.name)
+        self.dim_label.setText("")
+        self.statusBar().showMessage(_("Ready"))
+
     def _paste_image(self):
         if self.canvas.paste_from_clipboard():
-            self.statusBar().showMessage("Pasted image from clipboard")
+            self.statusBar().showMessage(_("Pasted image from clipboard"))
             self.layer_panel.refresh()
             self.nav_panel.refresh()
 
@@ -1022,10 +1170,10 @@ class MainWindow(QMainWindow):
 
     def _resize(self):
         img = self.canvas.layer_stack.composite()
-        w, ok1 = QInputDialog.getInt(self, "Resize", "Width:", img.width(), 1, 50000)
+        w, ok1 = QInputDialog.getInt(self, _("Resize"), _("Width:"), img.width(), 1, 50000)
         if not ok1:
             return
-        h, ok2 = QInputDialog.getInt(self, "Resize", "Height:", img.height(), 1, 50000)
+        h, ok2 = QInputDialog.getInt(self, _("Resize"), _("Height:"), img.height(), 1, 50000)
         if not ok2:
             return
         self.canvas._save_state("Resize")
@@ -1036,10 +1184,10 @@ class MainWindow(QMainWindow):
 
     def _canvas_size(self):
         img = self.canvas.layer_stack.composite()
-        w, ok1 = QInputDialog.getInt(self, "Canvas Size", "Width:", img.width(), 1, 50000)
+        w, ok1 = QInputDialog.getInt(self, _("Canvas Size"), _("Width:"), img.width(), 1, 50000)
         if not ok1:
             return
-        h, ok2 = QInputDialog.getInt(self, "Canvas Size", "Height:", img.height(), 1, 50000)
+        h, ok2 = QInputDialog.getInt(self, _("Canvas Size"), _("Height:"), img.height(), 1, 50000)
         if not ok2:
             return
         self.canvas._save_state("Canvas Size")
@@ -1093,23 +1241,23 @@ class MainWindow(QMainWindow):
         params = {}
         if adj_type == "brightness_contrast":
             dialog = QDialog(self)
-            dialog.setWindowTitle("Brightness / Contrast")
+            dialog.setWindowTitle(_("Brightness / Contrast"))
             layout = QVBoxLayout(dialog)
             b_slider = QSlider(Qt.Horizontal)
             b_slider.setRange(-255, 255)
             b_slider.setValue(0)
-            layout.addWidget(QLabel("Brightness:"))
+            layout.addWidget(QLabel(_("Brightness:")))
             layout.addWidget(b_slider)
             c_slider = QSlider(Qt.Horizontal)
             c_slider.setRange(0, 300)
             c_slider.setValue(100)
-            layout.addWidget(QLabel("Contrast:"))
+            layout.addWidget(QLabel(_("Contrast:")))
             layout.addWidget(c_slider)
             def on_ok():
                 params['brightness'] = b_slider.value()
                 params['contrast'] = c_slider.value()
                 dialog.accept()
-            btn = QPushButton("OK")
+            btn = QPushButton(_("OK"))
             btn.clicked.connect(on_ok)
             layout.addWidget(btn)
             dialog.exec_()
@@ -1117,29 +1265,29 @@ class MainWindow(QMainWindow):
 
         elif adj_type == "hsl":
             dialog = QDialog(self)
-            dialog.setWindowTitle("Hue / Saturation")
+            dialog.setWindowTitle(_("Hue / Saturation"))
             layout = QVBoxLayout(dialog)
             h_slider = QSlider(Qt.Horizontal)
             h_slider.setRange(-180, 180)
             h_slider.setValue(0)
-            layout.addWidget(QLabel("Hue:"))
+            layout.addWidget(QLabel(_("Hue:")))
             layout.addWidget(h_slider)
             s_slider = QSlider(Qt.Horizontal)
             s_slider.setRange(0, 300)
             s_slider.setValue(100)
-            layout.addWidget(QLabel("Saturation:"))
+            layout.addWidget(QLabel(_("Saturation:")))
             layout.addWidget(s_slider)
             l_slider = QSlider(Qt.Horizontal)
             l_slider.setRange(-100, 100)
             l_slider.setValue(0)
-            layout.addWidget(QLabel("Lightness:"))
+            layout.addWidget(QLabel(_("Lightness:")))
             layout.addWidget(l_slider)
             def on_ok():
                 params['hue'] = h_slider.value()
                 params['saturation'] = s_slider.value()
                 params['lightness'] = l_slider.value()
                 dialog.accept()
-            btn = QPushButton("OK")
+            btn = QPushButton(_("OK"))
             btn.clicked.connect(on_ok)
             layout.addWidget(btn)
             dialog.exec_()
@@ -1147,29 +1295,29 @@ class MainWindow(QMainWindow):
 
         elif adj_type == "levels":
             dialog = QDialog(self)
-            dialog.setWindowTitle("Levels")
+            dialog.setWindowTitle(_("Levels"))
             layout = QVBoxLayout(dialog)
             sh_slider = QSlider(Qt.Horizontal)
             sh_slider.setRange(0, 255)
             sh_slider.setValue(0)
-            layout.addWidget(QLabel("Shadow:"))
+            layout.addWidget(QLabel(_("Shadow:")))
             layout.addWidget(sh_slider)
             m_slider = QSlider(Qt.Horizontal)
             m_slider.setRange(10, 990)
             m_slider.setValue(100)
-            layout.addWidget(QLabel("Mid (gamma):"))
+            layout.addWidget(QLabel(_("Mid (gamma):")))
             layout.addWidget(m_slider)
             hi_slider = QSlider(Qt.Horizontal)
             hi_slider.setRange(0, 255)
             hi_slider.setValue(255)
-            layout.addWidget(QLabel("Highlight:"))
+            layout.addWidget(QLabel(_("Highlight:")))
             layout.addWidget(hi_slider)
             def on_ok():
                 params['shadow'] = sh_slider.value()
                 params['mid'] = m_slider.value()
                 params['highlight'] = hi_slider.value()
                 dialog.accept()
-            btn = QPushButton("OK")
+            btn = QPushButton(_("OK"))
             btn.clicked.connect(on_ok)
             layout.addWidget(btn)
             dialog.exec_()
