@@ -17,8 +17,8 @@ from editor.filters import (
 )
 from editor.layers import (
     Layer, LayerStack,
-    _blend_color_dodge, _blend_color_burn,
 )
+from editor.blend_modes import blend_color_dodge as _blend_color_dodge, blend_color_burn as _blend_color_burn
 from tests.test_data import solid_image
 
 
