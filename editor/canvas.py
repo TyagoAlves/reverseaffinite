@@ -602,6 +602,21 @@ class CanvasView(QGraphicsView):
         p.end()
         self._refresh()
 
+    def draw_ellipse_shape(self, start, end):
+        layer = self.layer_stack.active
+        if not layer or layer.locked:
+            return
+        p = QPainter(layer.image)
+        p.setRenderHint(QPainter.Antialiasing)
+        if self.has_selection():
+            self._apply_selection_clip(p)
+        pen = QPen(self.tool_color, self.tool_size, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+        p.setPen(pen)
+        rect = QRectF(start, end)
+        p.drawEllipse(rect.normalized())
+        p.end()
+        self._refresh()
+
     def clone_stamp(self, src, dst):
         layer = self.layer_stack.active
         if not layer or layer.locked:

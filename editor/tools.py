@@ -203,12 +203,26 @@ class ShapeTool(Tool):
     name = "Rectangle Tool"
     shortcut = "U"
     cursor_shape = Qt.CrossCursor
+    shape_mode = "rect"
 
     def press(self, canvas, pos, mods):
         canvas.shape_start = pos
+        canvas.temp_save_layer()
+
+    def move(self, canvas, last, pos, mods):
+        canvas.temp_restore_layer()
+        if self.shape_mode == "ellipse":
+            canvas.draw_ellipse_shape(canvas.shape_start, pos)
+        else:
+            canvas.draw_rect_shape(canvas.shape_start, pos)
 
     def release(self, canvas, pos, mods):
-        canvas.draw_rect_shape(canvas.shape_start, pos)
+        canvas.temp_restore_layer()
+        canvas._save_state(self.name)
+        if self.shape_mode == "ellipse":
+            canvas.draw_ellipse_shape(canvas.shape_start, pos)
+        else:
+            canvas.draw_rect_shape(canvas.shape_start, pos)
 
 
 class CloneStampTool(Tool):

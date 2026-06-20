@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
 
 from .canvas import CanvasView
 from .panels import ColorPanel, SwatchesPanel, ChannelsPanel, LayerPanel, HistoryPanel, ToolOptionsPanel, NavigatorPanel, GradientPanel, BrushPanel, PathPanel
-from .tools import TOOL_LIST
+from .tools import TOOL_LIST, ShapeTool
 from .settings import SettingsManager
 from .preferences_dialog import PreferencesDialog
 from .resources import apply_dark_theme
@@ -644,6 +644,17 @@ class MainWindow(QMainWindow):
         self.tool_options.addWidget(QLabel(_("  Color:")))
         self.tool_options.addWidget(self.color_btn)
 
+        self._shape_mode_labels = []
+        self.tool_options.addSeparator()
+        self.shape_mode_combo = QComboBox()
+        self.shape_mode_combo.addItems(["Rectangle", "Ellipse"])
+        self.shape_mode_combo.setFixedWidth(90)
+        self.shape_mode_combo.currentTextChanged.connect(self._on_shape_mode_changed)
+        slbl = QLabel(_("  Shape:"))
+        self._shape_mode_labels.append(slbl)
+        self.tool_options.addWidget(slbl)
+        self.tool_options.addWidget(self.shape_mode_combo)
+
         self.tool_options.addSeparator()
         self.tool_options.addWidget(QLabel(_("  Font:")))
         self.font_combo = QComboBox()
@@ -822,6 +833,17 @@ class MainWindow(QMainWindow):
 
     def _update_tool_label(self):
         self.tool_label.setText(self.canvas.tool.name)
+        is_shape = isinstance(self.canvas.tool, ShapeTool)
+        self.shape_mode_combo.setVisible(is_shape)
+        for lbl in self._shape_mode_labels:
+            lbl.setVisible(is_shape)
+
+    def _on_shape_mode_changed(self, mode):
+        tool = self.canvas.tool
+        if isinstance(tool, ShapeTool):
+            tool.shape_mode = "ellipse" if mode == "Ellipse" else "rect"
+            tool.name = f"{mode} Tool"
+            self._update_tool_label()
 
     def _update_coords(self, x, y):
         self.coord_label.setText(_("X: ") + f"{int(x):4d}" + _("  Y: ") + f"{int(y):4d}")
