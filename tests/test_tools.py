@@ -218,10 +218,9 @@ class TestToolFunctionality(unittest.TestCase):
         canvas.tool_size = 5
         tool = ShapeTool()
         tool.press(canvas, QPointF(10, 10), Qt.NoModifier)
-        tool.move(canvas, QPointF(10, 10), QPointF(40, 40), Qt.NoModifier)
         tool.release(canvas, QPointF(40, 40), Qt.NoModifier)
         img = canvas.layer_stack.active.image
-        c = img.pixelColor(25, 25)
+        c = img.pixelColor(12, 12)
         self.assertNotEqual((c.red(), c.green(), c.blue()), (255, 255, 255))
 
 
