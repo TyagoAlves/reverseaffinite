@@ -36,8 +36,8 @@
       linux: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`,
     };
     const OS_DOWNLOADS = {
-      windows: '#',
-      macos: '#',
+      windows: 'https://raw.githubusercontent.com/TyagoAlves/reverseaffinite/main/getstarted.ps1',
+      macos: 'https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip',
       linux: 'https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinite-x86_64.AppImage',
     };
     const OS_INSTALL = {
@@ -446,8 +446,8 @@
         linux: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`,
       };
       const subs = {
-        windows: 'Instalador executável',
-        macos: 'Pacote .dmg para macOS',
+        windows: 'Script automático (PowerShell)',
+        macos: 'Código fonte',
         linux: 'AppImage portátil — 81 MB',
       };
       document.querySelectorAll('.os-name').forEach(el => el.textContent = names[os]);
@@ -462,8 +462,9 @@
           '<span class="cmd">./reverseaffinite.AppImage</span>',
         ],
         windows: [
-          '<span class="cmd">Em breve — instalador nativo para Windows!</span>',
-          '<span class="output">&#9888; Por enquanto, use a versão Python:</span>',
+          '<span class="output">&#10003; Instalador automático (recomendado):</span>',
+          '<span class="cmd">powershell -ExecutionPolicy Bypass -File getstarted.ps1 -Run</span>',
+          '<span class="output">&#10003; Ou manualmente via Python:</span>',
           '<span class="cmd">git clone https://github.com/TyagoAlves/reverseaffinite.git</span>',
           '<span class="cmd">cd reverseaffinite</span>',
           '<span class="cmd">pip install PyQt5 numpy</span>',
@@ -482,7 +483,7 @@
 
       const links = {
         linux: 'https://reverseaffinite-releases.s3.us-east-2.amazonaws.com/reverseaffinite-x86_64.AppImage',
-        windows: 'https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip',
+        windows: 'https://raw.githubusercontent.com/TyagoAlves/reverseaffinite/main/getstarted.ps1',
         macos: 'https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip',
       };
       document.querySelectorAll('.os-download-link').forEach(el => el.href = links[os]);
