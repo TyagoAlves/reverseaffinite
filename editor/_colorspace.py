@@ -39,28 +39,3 @@ def hsl_to_rgb(h, s, l):
 
     return r * 255, g * 255, b * 255
 
-
-def rgb_to_lab(r, g, b):
-    """Simple sRGB -> LAB approximation"""
-    r, g, b = r / 255.0, g / 255.0, b / 255.0
-
-    def linearize(c):
-        return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
-
-    r, g, b = linearize(r), linearize(g), linearize(b)
-
-    x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b
-    y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
-    z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b
-
-    xn, yn, zn = 0.95047, 1.0, 1.08883
-    x, y, z = x / xn, y / yn, z / zn
-
-    def f(t):
-        return np.where(t > 0.008856, t ** (1/3), 7.787 * t + 16/116)
-
-    fx, fy, fz = f(x), f(y), f(z)
-    L = 116 * fy - 16
-    a = 500 * (fx - fy)
-    b = 200 * (fy - fz)
-    return L, a, b

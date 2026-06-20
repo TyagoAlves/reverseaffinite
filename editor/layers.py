@@ -2,12 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QImage, QColor, QPainter
 import numpy as np
 
-from .blend_modes import (
-    BLEND_FUNCTIONS,
-    blend_normal as _blend_normal,
-    blend_color_dodge as _blend_color_dodge,
-    blend_color_burn as _blend_color_burn,
-)
+from .blend_modes import BLEND_FUNCTIONS
 
 BLEND_FUNCS = BLEND_FUNCTIONS
 BLEND_MODES = list(BLEND_FUNCS.keys()) + ["Hue", "Saturation", "Color", "Luminosity"]

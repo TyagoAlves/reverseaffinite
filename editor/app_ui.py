@@ -299,7 +299,7 @@ class FilterGalleryDialog(QDialog):
         layout.addWidget(self.preview_label, 2)
 
     def _apply_filter(self, name):
-        import editor.filters as f
+        from . import filters as f
         func = getattr(f, name, None)
         if func and self.canvas.layer_stack.active:
             self.canvas._save_state(name.replace("_", " ").title())
@@ -354,7 +354,7 @@ class FilterGalleryDialog(QDialog):
             self._apply_filter_arg("posterize", l)
 
     def _apply_filter_arg(self, name, *args):
-        import editor.filters as f
+        from . import filters as f
         func = getattr(f, name, None)
         if func and self.canvas.layer_stack.active:
             self.canvas._save_state(name.replace("_", " ").title())
@@ -362,7 +362,7 @@ class FilterGalleryDialog(QDialog):
             self.canvas._refresh()
 
     def _apply_multi(self, steps):
-        import editor.filters as f
+        from . import filters as f
         layer = self.canvas.layer_stack.active
         if not layer:
             return

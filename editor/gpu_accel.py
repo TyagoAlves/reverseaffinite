@@ -8,7 +8,7 @@ import numpy as np
 from enum import Enum
 
 
-class GPU_BACKEND(Enum):
+class GpuBackend(Enum):
     CPU = 0
     CUDA = 1
     OPENCL = 2
@@ -32,7 +32,7 @@ class GPUAccel:
         return cls._instance
 
     def __init__(self):
-        self.backend = GPU_BACKEND.CPU
+        self.backend = GpuBackend.CPU
         self._detect_backend()
         self._init_backend()
 
@@ -43,7 +43,7 @@ class GPUAccel:
             self._cupy = cp
             test = cp.array([1, 2, 3])
             del test
-            self.backend = GPU_BACKEND.CUDA
+            self.backend = GpuBackend.CUDA
             print("[GPU] CUDA backend detected via CuPy")
             return
         except ImportError:
@@ -61,7 +61,7 @@ class GPUAccel:
                         self._cl_ctx = cl.Context([devices[0]])
                         self._cl_queue = cl.CommandQueue(self._cl_ctx)
                         self._cl_mf = cl.mem_flags
-                        self.backend = GPU_BACKEND.OPENCL
+                        self.backend = GpuBackend.OPENCL
                         print(f"[GPU] OpenCL backend: {devices[0].name}")
                         return
         except ImportError:
@@ -73,11 +73,11 @@ class GPUAccel:
 
     def _init_backend(self):
         """Initialize backend-specific resources."""
-        if self.backend == GPU_BACKEND.CUDA:
+        if self.backend == GpuBackend.CUDA:
             if not hasattr(self, '_cupy'):
                 import cupy as cp
                 self._cupy = cp
-        elif self.backend == GPU_BACKEND.OPENCL:
+        elif self.backend == GpuBackend.OPENCL:
             self._build_opencl_kernels()
 
     def _build_opencl_kernels(self):
@@ -323,9 +323,9 @@ class GPUAccel:
 
     def _to_gpu(self, img_np):
         """Transfer numpy array to GPU memory."""
-        if self.backend == GPU_BACKEND.CUDA:
+        if self.backend == GpuBackend.CUDA:
             return self._cupy.asarray(img_np)
-        elif self.backend == GPU_BACKEND.OPENCL:
+        elif self.backend == GpuBackend.OPENCL:
             import pyopencl as cl
             if img_np.dtype != np.uint8 or img_np.ndim != 3 or img_np.shape[2] != 4:
                 if img_np.ndim == 2:
@@ -344,9 +344,9 @@ class GPUAccel:
 
     def _from_gpu(self, gpu_data, shape=None):
         """Transfer GPU memory back to numpy array."""
-        if self.backend == GPU_BACKEND.CUDA:
+        if self.backend == GpuBackend.CUDA:
             return self._cupy.asnumpy(gpu_data)
-        elif self.backend == GPU_BACKEND.OPENCL:
+        elif self.backend == GpuBackend.OPENCL:
             import pyopencl as cl
             buf, s = gpu_data
             result = np.empty(s, dtype=np.uint8)
@@ -360,7 +360,7 @@ class GPUAccel:
         Accepts uint8 or float32 arrays, 3 or 4 channels.
         Returns same dtype and channel count as input.
         """
-        if self.backend == GPU_BACKEND.CPU:
+        if self.backend == GpuBackend.CPU:
             return self._blend_cpu(bottom_np, top_np, mode, opacity)
 
         # Normalize to uint8 RGBA for GPU processing
@@ -437,9 +437,9 @@ class GPUAccel:
 
     def _blend_gpu(self, bottom_np, top_np, mode, opacity):
         """GPU blend mode implementation."""
-        if self.backend == GPU_BACKEND.CUDA:
+        if self.backend == GpuBackend.CUDA:
             return self._blend_cuda(bottom_np, top_np, mode, opacity)
-        elif self.backend == GPU_BACKEND.OPENCL:
+        elif self.backend == GpuBackend.OPENCL:
             return self._blend_opencl(bottom_np, top_np, mode, opacity)
         return bottom_np
 
@@ -571,7 +571,7 @@ class GPUAccel:
 
     @property
     def is_active(self):
-        return self.backend != GPU_BACKEND.CPU
+        return self.backend != GpuBackend.CPU
 
     @property
     def backend_name(self):
