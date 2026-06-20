@@ -1,13 +1,13 @@
-# reverseaffinite Windows Sync Script
+# reverseaffinity Windows Sync Script
 param(
-    [string]$RepoPath = "C:\reverseaffinite"
+    [string]$RepoPath = "C:\reverseaffinity"
 )
 
-Write-Host "=== reverseaffinite Windows Sync ===" -ForegroundColor Cyan
+Write-Host "=== reverseaffinity Windows Sync ===" -ForegroundColor Cyan
 
 Write-Host "1) Pull latest from GitHub" -ForegroundColor Yellow
 if (-not (Test-Path $RepoPath)) {
-    git clone --recursive https://github.com/TyagoAlves/reverseaffinite.git $RepoPath
+    git clone --recursive https://github.com/TyagoAlves/reverseaffinity.git $RepoPath
 }
 git -C $RepoPath pull origin main 2>&1 | ForEach-Object { Write-Host $_ }
 

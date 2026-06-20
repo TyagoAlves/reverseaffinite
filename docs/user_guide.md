@@ -1,4 +1,4 @@
-# reverseaffinite Photo — Guia do Usuário
+# reverseaffinity Photo — Guia do Usuário
 
 > **A melhor edição de imagens para Linux — construída do zero.**
 > Inspirado por Affinity Photo, Adobe Photoshop e DaVinci Resolve.
@@ -21,7 +21,7 @@
 
 ## 1. Introdução
 
-**reverseaffinite Photo** é um editor de imagens profissional desenvolvido em Python com PyQt5,
+**reverseaffinity Photo** é um editor de imagens profissional desenvolvido em Python com PyQt5,
 combinando a produtividade do Affinity Photo, o poder do Adobe Photoshop e a fluência do
 DaVinci Resolve em uma experiência nativa para Linux.
 
@@ -393,7 +393,7 @@ Aumenta e diminui o zoom da visualização.
 
 ## 5. Sistema de Camadas
 
-O sistema de camadas (layer stack) do reverseaffinite funciona como no Photoshop ou Affinity Photo:
+O sistema de camadas (layer stack) do reverseaffinity funciona como no Photoshop ou Affinity Photo:
 
 ### Conceitos Básicos
 
@@ -585,4 +585,4 @@ A barra de status na parte inferior da janela exibe:
 
 ---
 
-© 2026 reverseaffinite. Construído com PyQt5, numpy e Pillow.
+© 2026 reverseaffinity. Construído com PyQt5, numpy e Pillow.

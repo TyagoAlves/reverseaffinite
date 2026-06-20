@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(reverseaffinite VERSION 0.1.0 LANGUAGES CXX)
+project(reverseaffinity VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -54,7 +54,7 @@ foreach(header ${MOC_HEADERS})
 endforeach()
 
 # Add the executable
-add_executable(reverseaffinite
+add_executable(reverseaffinity
     src/main.cpp
     src/layers.cpp
     src/history.cpp
@@ -68,9 +68,9 @@ add_executable(reverseaffinite
     ${MOC_SOURCES}
 )
 
-target_include_directories(reverseaffinite PRIVATE include)
+target_include_directories(reverseaffinity PRIVATE include)
 
-target_link_libraries(reverseaffinite PRIVATE
+target_link_libraries(reverseaffinity PRIVATE
     Qt5::Widgets
     Qt5::Gui
     Qt5::Core
@@ -79,7 +79,7 @@ target_link_libraries(reverseaffinite PRIVATE
 )
 
 # Qt5 headers require -fPIC (built with -reduce-relocations)
-target_compile_options(reverseaffinite PRIVATE -fPIC -msse2)
+target_compile_options(reverseaffinity PRIVATE -fPIC -msse2)
 
 # Enable SIMD flags for simd_ops.cpp
 set_source_files_properties(src/simd_ops.cpp PROPERTIES

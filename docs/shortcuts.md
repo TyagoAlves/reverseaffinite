@@ -1,4 +1,4 @@
-# reverseaffinite Photo — Atalhos de Teclado (Keyboard Shortcuts)
+# reverseaffinity Photo — Atalhos de Teclado (Keyboard Shortcuts)
 
 Referência completa de atalhos de teclado, organizada por categoria.
 
@@ -135,4 +135,4 @@ Referência completa de atalhos de teclado, organizada por categoria.
 
 ---
 
-© 2026 reverseaffinite.
+© 2026 reverseaffinity.

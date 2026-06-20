@@ -37,7 +37,7 @@ class SplashScreen(QSplashScreen):
         p.setPen(QColor(224, 224, 224))
         title_font = QFont("Segoe UI", 22, QFont.Bold)
         p.setFont(title_font)
-        p.drawText(QRect(0, 100, size[0], 40), Qt.AlignCenter, _("reverseaffinite"))
+        p.drawText(QRect(0, 100, size[0], 40), Qt.AlignCenter, _("reverseaffinity"))
 
         p.setPen(QColor(150, 150, 150))
         ver_font = QFont("Segoe UI", 11)

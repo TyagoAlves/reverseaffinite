@@ -2,10 +2,10 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BUILD_DIR="/tmp/reverseaffinite_build"
+BUILD_DIR="/tmp/reverseaffinity_build"
 QT_LOCAL_DIR="$PROJECT_DIR/qt_local/gcc_64"
 
-echo "=== reverseaffinite Build Script ==="
+echo "=== reverseaffinity Build Script ==="
 
 # ---- detect Linux distro ----
 detect_distro() {
@@ -118,6 +118,6 @@ cmake --build "$BUILD_DIR" -j"$(nproc)" 2>&1
 
 echo ""
 echo "=== Build Complete ==="
-echo "Binary at: $BUILD_DIR/reverseaffinite"
+echo "Binary at: $BUILD_DIR/reverseaffinity"
 echo ""
-echo "To run: $BUILD_DIR/reverseaffinite"
+echo "To run: $BUILD_DIR/reverseaffinity"

@@ -58,7 +58,7 @@
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd reverseaffinite
+cd reverseaffinity
 
 # Install dependencies
 pip install -r requirements.txt
@@ -77,7 +77,7 @@ python main.py
 
 ## Design Philosophy 🧠
 
-**Keyboard-first.** Every tool in reverseaffinite is accessible via a single keystroke. The interface is designed so you never need to take your hands off the keyboard to switch between painting, selecting, zooming, or picking colors.
+**Keyboard-first.** Every tool in reverseaffinity is accessible via a single keystroke. The interface is designed so you never need to take your hands off the keyboard to switch between painting, selecting, zooming, or picking colors.
 
 **Professional layout.** Tool palette on the left (like Photoshop/Affinity), options bar on top, panels on the right. Familiar to anyone coming from professional image editors.
 
@@ -98,7 +98,7 @@ python main.py
 ## Project Structure 📁
 
 ```
-reverseaffinite/
+reverseaffinity/
 ├── main.py                  # Application entry point
 ├── editor/                  # Python engine (rapid prototyping)
 │   ├── app_ui.py            # Main window, menus, toolbars

@@ -808,10 +808,10 @@ class MainWindow(QMainWindow):
     def _show_about(self):
         icon_path = os.path.join(os.path.dirname(__file__), "..", "assets", "icon.svg")
         msg = QMessageBox(self)
-        msg.setWindowTitle(_("About reverseaffinite"))
+        msg.setWindowTitle(_("About reverseaffinity"))
         msg.setIconPixmap(QIcon(icon_path).pixmap(64, 64) if os.path.exists(icon_path) else QPixmap())
         msg.setText(
-            _("<h2>reverseaffinite</h2>"
+            _("<h2>reverseaffinity</h2>"
               "<p><b>Version 0.1.0</b></p>"
               "<p>A professional photo editor built with PyQt5.</p>"
               "<hr>"
@@ -819,7 +819,7 @@ class MainWindow(QMainWindow):
               "<hr>"
               "<p style='font-size:11px; color:#888;'>"
               "Built with Python, PyQt5, NumPy<br>"
-              "© 2026 reverseaffinite"
+              "© 2026 reverseaffinity"
               "</p>")
         )
         msg.exec_()
@@ -993,7 +993,7 @@ class MainWindow(QMainWindow):
         self.mode_action = view_m.addAction(_("Switch to &Video Mode"), self._toggle_mode, QKeySequence("F5"))
 
         help_m = mb.addMenu(_("&Help"))
-        help_m.addAction(_("&About reverseaffinite"), self._show_about)
+        help_m.addAction(_("&About reverseaffinity"), self._show_about)
 
     def create_statusbar(self):
         sb = self.statusBar()
@@ -1021,7 +1021,7 @@ class MainWindow(QMainWindow):
             return
         self.canvas.new_image(w, h)
         self.current_path = None
-        self.setWindowTitle(_("reverseaffinite Photo - [Untitled ") + f"{w}x{h}]")
+        self.setWindowTitle(_("reverseaffinity Photo - [Untitled ") + f"{w}x{h}]")
         self._update_dim_label()
         self.layer_panel.refresh()
         self.nav_panel.refresh()
@@ -1035,7 +1035,7 @@ class MainWindow(QMainWindow):
         if path and self.canvas.open_image(path):
             self.current_path = path
             self._add_recent_file(path)
-            self.setWindowTitle(_("reverseaffinite Photo - [") + path + "]")
+            self.setWindowTitle(_("reverseaffinity Photo - [") + path + "]")
             self.statusBar().showMessage(_("Opened: ") + path)
             self._update_dim_label()
             self.layer_panel.refresh()
@@ -1070,7 +1070,7 @@ class MainWindow(QMainWindow):
             self.canvas.save_image(path)
             self.current_path = path
             self._add_recent_file(path)
-            self.setWindowTitle(_("reverseaffinite Photo - [") + path + "]")
+            self.setWindowTitle(_("reverseaffinity Photo - [") + path + "]")
             self._update_dim_label()
             self.statusBar().showMessage(_("Saved: ") + path)
 
@@ -1127,7 +1127,7 @@ class MainWindow(QMainWindow):
         if self.canvas.open_image(path):
             self.current_path = path
             self._add_recent_file(path)
-            self.setWindowTitle(_("reverseaffinite Photo - [") + path + "]")
+            self.setWindowTitle(_("reverseaffinity Photo - [") + path + "]")
             self.statusBar().showMessage(_("Opened: ") + path)
             self._update_dim_label()
             self.layer_panel.refresh()
@@ -1161,7 +1161,7 @@ class MainWindow(QMainWindow):
                 self.retranslate_ui()
 
     def retranslate_ui(self):
-        self.setWindowTitle(_("reverseaffinite Photo - [Untitled]"))
+        self.setWindowTitle(_("reverseaffinity Photo - [Untitled]"))
         self._rebuild_menus()
         self._rebuild_status_bar()
         self.layer_panel.refresh()
@@ -1188,7 +1188,7 @@ class MainWindow(QMainWindow):
             self.tool_options.hide()
             self.right_dock.hide()
             self.console_dock.hide()
-            self.setWindowTitle(_("reverseaffinite Video - [Untitled]"))
+            self.setWindowTitle(_("reverseaffinity Video - [Untitled]"))
         else:
             self.current_mode = "photo"
             self.mode_stack.setCurrentIndex(0)
@@ -1197,7 +1197,7 @@ class MainWindow(QMainWindow):
             self.tool_options.show()
             self.right_dock.show()
             self.console_dock.show()
-            self.setWindowTitle(_("reverseaffinite Photo - [Untitled]"))
+            self.setWindowTitle(_("reverseaffinity Photo - [Untitled]"))
 
     def _paste_image(self):
         if self.canvas.paste_from_clipboard():
@@ -1405,3 +1405,28 @@ class MainWindow(QMainWindow):
         dialog = FilterGalleryDialog(self.canvas, self)
         dialog.exec_()
         self.canvas._refresh()
+
+
+def main():
+    import sys
+    app = QApplication(sys.argv)
+    app.setApplicationName("reverseaffinity")
+    app.setOrganizationName("reverseaffinity")
+    app.setApplicationDisplayName("reverseaffinity Photo")
+
+    from editor.resources import apply_dark_theme
+    apply_dark_theme(app)
+
+    icon_path = os.path.join(os.path.dirname(__file__), "..", "assets", "icon.svg")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
+
+    window = MainWindow()
+    window.setWindowTitle("reverseaffinity Photo - [Untitled]")
+    window.show()
+
+    sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()

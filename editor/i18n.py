@@ -20,7 +20,7 @@ class Translator(QObject):
     def _init_lang_from_settings(self) -> str:
         from PyQt5.QtCore import QStandardPaths
         config_dir = QStandardPaths.writableLocation(QStandardPaths.ConfigLocation)
-        settings_path = os.path.join(config_dir, 'reverseaffinite', 'settings.json')
+        settings_path = os.path.join(config_dir, 'reverseaffinity', 'settings.json')
         try:
             if os.path.exists(settings_path):
                 with open(settings_path, 'r') as f:

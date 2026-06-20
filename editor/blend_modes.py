@@ -1,5 +1,5 @@
 """
-Blend mode functions for reverseaffinite.
+Blend mode functions for reverseaffinity.
 Provides 14 blend modes with automatic GPU acceleration.
 Falls back to CPU (NumPy) when no GPU backend is available.
 """

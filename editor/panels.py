@@ -294,7 +294,7 @@ class SwatchesPanel(QWidget):
 
     def _save_swatches(self):
         import json, os
-        config_dir = os.path.join(os.path.expanduser("~"), ".config", "reverseaffinite")
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "reverseaffinity")
         os.makedirs(config_dir, exist_ok=True)
         path = os.path.join(config_dir, "swatches.json")
         with open(path, "w") as f:
@@ -302,7 +302,7 @@ class SwatchesPanel(QWidget):
 
     def _load_swatches(self):
         import json, os
-        config_dir = os.path.join(os.path.expanduser("~"), ".config", "reverseaffinite")
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "reverseaffinity")
         path = os.path.join(config_dir, "swatches.json")
         if os.path.exists(path):
             with open(path) as f:

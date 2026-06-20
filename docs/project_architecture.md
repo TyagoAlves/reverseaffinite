@@ -1,4 +1,4 @@
-# reverseaffinite — Arquitetura do Projeto
+# reverseaffinity — Arquitetura do Projeto
 
 Documentação técnica para desenvolvedores que desejam contribuir ou estender o
 projeto.
@@ -8,7 +8,7 @@ projeto.
 ## 1. Estrutura de Diretórios
 
 ```
-reverseaffinite/
+reverseaffinity/
 ├── main.py                  # Ponto de entrada: app QApplication + MainWindow
 ├── requirements.txt         # Dependências: PyQt5, numpy, Pillow
 ├── README.md                # Documentação principal
@@ -408,4 +408,4 @@ ColorPanel.colorChanged → CanvasView.set_foreground_color
 
 ---
 
-© 2026 reverseaffinite.
+© 2026 reverseaffinity.

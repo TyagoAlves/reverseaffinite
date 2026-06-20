@@ -1,4 +1,4 @@
-# reverseaffinite Photo — Modos de Mesclagem (Blend Modes)
+# reverseaffinity Photo — Modos de Mesclagem (Blend Modes)
 
 Guia visual e técnico dos 12 modos de mesclagem disponíveis.
 
@@ -183,4 +183,4 @@ Exclusion      |    —      |    —     |    Suave   | B + L − 2BL
 
 ---
 
-© 2026 reverseaffinite.
+© 2026 reverseaffinity.

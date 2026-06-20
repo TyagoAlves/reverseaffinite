@@ -29,7 +29,7 @@ The project is in **Phase 2/3** with 10 feature branches (feature-1 through feat
 
 ### Core Structure
 ```
-reverseaffinite/
+reverseaffinity/
 ├── main.py                 # Entry point
 ├── editor/
 │   ├── app_ui.py           # Main UI
@@ -104,7 +104,7 @@ reverseaffinite/
 ### Python Prototype (for development and testing)
 ```bash
 # Clone the repository
-cd /media/tyago/Ventoy/reverseaffinite
+cd /media/tyago/Ventoy/reverseaffinity
 
 # Install dependencies
 pip install -r requirements.txt
@@ -119,23 +119,23 @@ python3 main.py
 sudo apt install qtbase5-dev qt5-qmake
 
 # Build with CMake
-cd /media/tyago/Ventoy/reverseaffinite/cpp_editor
+cd /media/tyago/Ventoy/reverseaffinity/cpp_editor
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 make -C build -j$(nproc)
 
 # Run
-./build/reverseaffinite
+./build/reverseaffinity
 ```
 
 ### Testing
 ```bash
-cd /media/tyago/Ventoy/reverseaffinite
+cd /media/tyago/Ventoy/reverseaffinity
 python3 -m pytest tests/
 ```
 
 ### Running Demo
 ```bash
-cd /media/tyago/Ventoy/reverseaffinite
+cd /media/tyago/Ventoy/reverseaffinity
 python3 tools/demo.py
 ```
 
@@ -174,7 +174,7 @@ This project represents a fresh start for native image editing in Linux. It comb
 ## Contact
 
 For questions, contributions, or support:
-- Project repository at /media/tyago/Ventoy/reverseaffinite/
+- Project repository at /media/tyago/Ventoy/reverseaffinity/
 - Submit issues via the standard GitHub workflow
 - The AGENTS.md file contains detailed information for feature contributors
 

@@ -169,7 +169,7 @@ private:
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
-    setWindowTitle("reverseaffinite");
+    setWindowTitle("reverseaffinity");
     resize(1280, 800);
 
     applyDarkTheme();

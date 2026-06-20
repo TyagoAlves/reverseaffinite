@@ -1,5 +1,5 @@
 """
-Regression tests for reverseaffinite.
+Regression tests for reverseaffinity.
 
 Add a test here when fixing a bug, named after the issue/bug description.
 This ensures bugs stay fixed.

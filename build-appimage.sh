@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-# Build reverseaffinite AppImage
+# Build reverseaffinity AppImage
 # Usage: ./build-appimage.sh
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -14,7 +14,7 @@ sudo pip3 install pyinstaller Pillow psd-tools --break-system-packages -qq
 echo "[2/5] Running PyInstaller..."
 rm -rf build dist *.spec
 pyinstaller \
-    --name reverseaffinite \
+    --name reverseaffinity \
     --onefile --windowed \
     --add-data "$(python3 -c 'import PyQt5; print(PyQt5.__path__[0])'):PyQt5" \
     --add-data "$(python3 -c 'import numpy; print(numpy.__path__[0])'):numpy" \
@@ -29,29 +29,29 @@ echo "[3/5] Creating AppDir..."
 APPDIR=/tmp/AppDir-build
 rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin"
-cp dist/reverseaffinite "$APPDIR/usr/bin/"
+cp dist/reverseaffinity "$APPDIR/usr/bin/"
 
 cat > "$APPDIR/AppRun" << 'APP'
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "$0")")"
 export PATH="$HERE/usr/bin:$PATH"
-exec "$HERE/usr/bin/reverseaffinite" "$@"
+exec "$HERE/usr/bin/reverseaffinity" "$@"
 APP
 chmod +x "$APPDIR/AppRun"
 
-cat > "$APPDIR/reverseaffinite.desktop" << 'DESK'
+cat > "$APPDIR/reverseaffinity.desktop" << 'DESK'
 [Desktop Entry]
-Name=reverseaffinite Photo
+Name=reverseaffinity Photo
 Comment=Photo editor inspired by Photoshop
-Exec=reverseaffinite
-Icon=reverseaffinite
+Exec=reverseaffinity
+Icon=reverseaffinity
 Type=Application
 Categories=Graphics;Photography;2DGraphics;RasterGraphics;
 Terminal=false
 MimeType=image/png;image/jpeg;image/tiff;image/webp;image/bmp;image/x-psd;
 DESK
 
-cat > "$APPDIR/reverseaffinite.svg" << 'SVG'
+cat > "$APPDIR/reverseaffinity.svg" << 'SVG'
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
   <defs>
     <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -64,7 +64,7 @@ cat > "$APPDIR/reverseaffinite.svg" << 'SVG'
   <text x="128" y="160" font-family="Arial,sans-serif" font-size="100" font-weight="bold" fill="white" text-anchor="middle">R</text>
 </svg>
 SVG
-ln -sf reverseaffinite.svg "$APPDIR/reverseaffinite.png"
+ln -sf reverseaffinity.svg "$APPDIR/reverseaffinity.png"
 
 echo "[4/5] Downloading appimagetool..."
 if [ ! -f /tmp/appimagetool ]; then
@@ -73,6 +73,6 @@ if [ ! -f /tmp/appimagetool ]; then
 fi
 
 echo "[5/5] Building AppImage..."
-/tmp/appimagetool "$APPDIR" "$REPO_DIR/reverseaffinite-x86_64.AppImage"
+/tmp/appimagetool "$APPDIR" "$REPO_DIR/reverseaffinity-x86_64.AppImage"
 
-echo "DONE: reverseaffinite-x86_64.AppImage ($(du -sh "$REPO_DIR/reverseaffinite-x86_64.AppImage" | cut -f1))"
+echo "DONE: reverseaffinity-x86_64.AppImage ($(du -sh "$REPO_DIR/reverseaffinity-x86_64.AppImage" | cut -f1))"

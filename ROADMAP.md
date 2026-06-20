@@ -1,4 +1,4 @@
-# reverseaffinite - Roadmap
+# reverseaffinity - Roadmap
 
 ## Phase 1: Foundation ✅
 - [x] Git repo initialized

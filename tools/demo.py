@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Demonstration script for reverseaffinite.
+Demonstration script for reverseaffinity.
 Creates an image, applies tools and filters, tests undo/redo,
 and saves the result as demo_output.png.
 """

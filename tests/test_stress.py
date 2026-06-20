@@ -1,5 +1,5 @@
 """
-Stress tests for reverseaffinite.
+Stress tests for reverseaffinity.
 Mark with @pytest.mark.stress to skip in normal test runs.
 """
 import os

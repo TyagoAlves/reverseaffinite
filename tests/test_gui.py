@@ -1,5 +1,5 @@
 """
-GUI Tests for reverseaffinite.
+GUI Tests for reverseaffinity.
 
 Uses QTest for widget interaction. Requires a display (use xvfb-run).
 Mark with @pytest.mark.gui to skip when no display is available.

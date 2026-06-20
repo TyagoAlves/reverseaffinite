@@ -1,5 +1,5 @@
 """
-GPU Acceleration Module for reverseaffinite.
+GPU Acceleration Module for reverseaffinity.
 Auto-detects available GPU (CUDA > OpenCL > CPU fallback).
 Provides accelerated blend modes and filters.
 """

@@ -42,7 +42,7 @@ class SettingsManager(QObject):
         super().__init__(parent)
         self._settings = dict(DEFAULT_SETTINGS)
         config_dir = QStandardPaths.writableLocation(QStandardPaths.ConfigLocation)
-        self._config_dir = os.path.join(config_dir, 'reverseaffinite')
+        self._config_dir = os.path.join(config_dir, 'reverseaffinity')
         self._settings_path = os.path.join(self._config_dir, 'settings.json')
 
     def get(self, key, default=None):

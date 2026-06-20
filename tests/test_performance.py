@@ -1,5 +1,5 @@
 """
-Performance benchmarks for reverseaffinite.
+Performance benchmarks for reverseaffinity.
 Mark with @pytest.mark.perf to skip in normal test runs.
 """
 import time

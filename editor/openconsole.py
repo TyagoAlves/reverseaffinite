@@ -74,7 +74,7 @@ class ScriptConsole(QDockWidget):
 
     def _print_banner(self):
         banner = (
-            "OpenCode Scripting Console for reverseaffinite\n"
+            "OpenCode Scripting Console for reverseaffinity\n"
             "Type Python code and press Ctrl+Enter to execute.\n"
             "Available context: canvas, layers, tools, np (numpy), QColor, Qt, QImage\n"
             "Type help() for more info.\n"

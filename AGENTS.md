@@ -1,4 +1,4 @@
-# reverseaffinite — Matriz de 30 Agentes Especialistas
+# reverseaffinity — Matriz de 30 Agentes Especialistas
 
 ## Arquitetura Geral
 - **Python Prototype** (`editor/`): Iteração rápida, UI, prototipação de ferramentas
@@ -273,4 +273,4 @@ O Agente_30 (SRE) gerencia o arquivo `context_history.log`:
 
 ---
 
-*Gerado em 2026-06-20 — Sprint 3 — reverseaffinite Photo Editor*
+*Gerado em 2026-06-20 — Sprint 3 — reverseaffinity Photo Editor*

@@ -1,7 +1,7 @@
 # Sprint 3 Plan
 
 **Planned:** 2026-06-18 to 2026-06-25
-**Project:** reverseaffinite Photo Editor
+**Project:** reverseaffinity Photo Editor
 
 ---
 

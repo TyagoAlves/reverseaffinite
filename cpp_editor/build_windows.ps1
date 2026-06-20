@@ -1,7 +1,7 @@
-# reverseaffinite Windows Build Script
+# reverseaffinity Windows Build Script
 # Run in PowerShell as Administrator
 
-Write-Host "=== reverseaffinite Windows Build ===" -ForegroundColor Cyan
+Write-Host "=== reverseaffinity Windows Build ===" -ForegroundColor Cyan
 
 # 1. Check prerequisites
 $missing = @()
@@ -43,7 +43,7 @@ Write-Host "Qt5 found at: $qt5Path" -ForegroundColor Green
 
 # 3. Determine build directory
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$buildDir = "$env:TEMP\reverseaffinite_win_build"
+$buildDir = "$env:TEMP\reverseaffinity_win_build"
 New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
 
 # 4. Detect GPU (NVIDIA)
@@ -79,9 +79,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # 7. Show results
-$binary = "$buildDir\Release\reverseaffinite.exe"
+$binary = "$buildDir\Release\reverseaffinity.exe"
 if (-not (Test-Path $binary)) {
-    $binary = "$buildDir\reverseaffinite.exe"
+    $binary = "$buildDir\reverseaffinity.exe"
 }
 if (Test-Path $binary) {
     $size = (Get-Item $binary).Length / 1KB

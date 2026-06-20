@@ -1,5 +1,5 @@
 param([switch]$Run)
-Write-Host "=== reverseaffinite Photo Editor - Windows Setup ===" -ForegroundColor Cyan
+Write-Host "=== reverseaffinity Photo Editor - Windows Setup ===" -ForegroundColor Cyan
 Write-Host ""
 $ErrorActionPreference = "Stop"
 
@@ -19,13 +19,13 @@ Write-Host "[3/4] Instalando dependencias..." -ForegroundColor Yellow
 python -m pip install --upgrade pip -q
 python -m pip install PyQt5 numpy -q
 
-Write-Host "[4/4] Baixando reverseaffinite..." -ForegroundColor Yellow
-$zipUrl = "https://github.com/TyagoAlves/reverseaffinite/archive/refs/heads/main.zip"
-$zipOut = "$env:TEMP\reverseaffinite.zip"
+Write-Host "[4/4] Baixando reverseaffinity..." -ForegroundColor Yellow
+$zipUrl = "https://github.com/TyagoAlves/reverseaffinity/archive/refs/heads/main.zip"
+$zipOut = "$env:TEMP\reverseaffinity.zip"
 Invoke-WebRequest -Uri $zipUrl -OutFile $zipOut
-Expand-Archive -Path $zipOut -DestinationPath "$env:USERPROFILE\reverseaffinite" -Force
+Expand-Archive -Path $zipOut -DestinationPath "$env:USERPROFILE\reverseaffinity" -Force
 
-$appDir = "$env:USERPROFILE\reverseaffinite\reverseaffinite-main"
+$appDir = "$env:USERPROFILE\reverseaffinity\reverseaffinity-main"
 Write-Host ""
 Write-Host "=== Pronto! ===" -ForegroundColor Green
 Write-Host "Para iniciar o editor, execute:" -ForegroundColor White

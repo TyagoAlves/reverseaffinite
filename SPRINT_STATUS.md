@@ -1,8 +1,8 @@
 # Sprint Status Report
 
 **Date:** 2026-06-18
-**Project:** reverseaffinite Photo Editor
-**Repository:** /media/tyago/Ventoy/reverseaffinite
+**Project:** reverseaffinity Photo Editor
+**Repository:** /media/tyago/Ventoy/reverseaffinity
 **Current Branch:** feature-preferences (dirty working tree)
 
 ---
