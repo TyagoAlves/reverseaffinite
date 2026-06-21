@@ -744,15 +744,11 @@ class LayerPanel(QWidget):
             canvas._refresh()
             self.refresh()
 
-    def _toggle_lock(self, lock_type):
+    def _toggle_lock(self):
         canvas = self.get_canvas()
         if not canvas or not canvas.layer_stack.active:
             return
-        active = canvas.layer_stack.active
-        if lock_type == "all":
-            active.locked = not active.locked
-        else:
-            active.locked = not active.locked
+        canvas.layer_stack.active.locked = not canvas.layer_stack.active.locked
         self.refresh()
 
     def _row_changed(self, row):

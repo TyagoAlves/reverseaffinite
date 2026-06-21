@@ -65,33 +65,7 @@ class MoveTool(Tool):
         canvas.dragging_layer = False
 
 
-class RectSelectTool(Tool):
-    name = "Rectangular Marquee Tool"
-    shortcut = "M"
-    cursor_shape = Qt.CrossCursor
-
-    def press(self, canvas, pos, mods):
-        canvas.selection_start = pos
-        canvas.rubber_band_start = pos
-        canvas.rubber_band_end = pos
-        canvas.has_rubber_band = True
-
-    def move(self, canvas, last, pos, mods):
-        canvas.rubber_band_end = pos
-        canvas.update()
-
-    def release(self, canvas, pos, mods):
-        canvas.has_rubber_band = False
-        from PyQt5.QtCore import QRect, QPoint
-        x1, y1 = int(canvas.selection_start.x()), int(canvas.selection_start.y())
-        x2, y2 = int(pos.x()), int(pos.y())
-        rect = QRect(QPoint(min(x1, x2), min(y1, y2)), QPoint(max(x1, x2), max(y1, y2)))
-        canvas.set_selection_rect(rect)
-
-
-class EllipseSelectTool(Tool):
-    name = "Elliptical Marquee Tool"
-    shortcut = ""
+class BaseShapeSelectTool(Tool):
     cursor_shape = Qt.CrossCursor
 
     def press(self, canvas, pos, mods):
@@ -110,6 +84,25 @@ class EllipseSelectTool(Tool):
         x1, y1 = int(canvas.selection_start.x()), int(canvas.selection_start.y())
         x2, y2 = int(pos.x()), int(pos.y())
         rect = QRect(QPoint(min(x1, x2), min(y1, y2)), QPoint(max(x1, x2), max(y1, y2)))
+        self._apply_selection(canvas, rect)
+
+    def _apply_selection(self, canvas, rect):
+        raise NotImplementedError
+
+
+class RectSelectTool(BaseShapeSelectTool):
+    name = "Rectangular Marquee Tool"
+    shortcut = "M"
+
+    def _apply_selection(self, canvas, rect):
+        canvas.set_selection_rect(rect)
+
+
+class EllipseSelectTool(BaseShapeSelectTool):
+    name = "Elliptical Marquee Tool"
+    shortcut = ""
+
+    def _apply_selection(self, canvas, rect):
         canvas.set_selection_ellipse(rect)
 
 
@@ -739,8 +732,8 @@ _ALIASES = {
     "clone": "Clone Stamp Tool",
     "heal": "Healing Brush Tool",
     "crop": "Crop Tool",
-    "rect": "Rect Select Tool",
-    "ellipse": "Ellipse Select Tool",
+    "rect": "Rectangular Marquee Tool",
+    "ellipse": "Elliptical Marquee Tool",
     "lasso": "Lasso Tool",
     "wand": "Magic Wand Tool",
     "picker": "Color Picker Tool",

@@ -13,30 +13,36 @@ from tests.test_history import TestHistoryEntry, TestHistoryManager
 from tests.test_canvas import TestCanvasComposite, TestCanvasSelection, \
     TestCanvasFileIO, TestCanvasZoomPan, TestCanvasDrawing, TestCanvasMoveLayer
 
+from tests.test_regressions import (
+    TestColorDodgeNoNan, TestColorBurnNoInf,
+    TestFilterPreservesAlpha, TestBrightnessClipping, TestCanvasMemory,
+)
+from tests.test_integration import (
+    TestCreateDrawFilterSaveReopen, TestLayerAddPaintFlatten,
+    TestUndoRedoSequence, TestSelectionFillVerify,
+    TestLayerBlendModes, TestLayerOpacity,
+)
+
 
 def main():
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
 
-    suite.addTests(loader.loadTestsFromTestCase(TestBlendFunctions))
-    suite.addTests(loader.loadTestsFromTestCase(TestLayer))
-    suite.addTests(loader.loadTestsFromTestCase(TestAdjustmentLayer))
-    suite.addTests(loader.loadTestsFromTestCase(TestGroupLayer))
-    suite.addTests(loader.loadTestsFromTestCase(TestLayerStack))
-    suite.addTests(loader.loadTestsFromTestCase(TestFloatArrayConversion))
-    suite.addTests(loader.loadTestsFromTestCase(TestArrayConversion))
-    suite.addTests(loader.loadTestsFromTestCase(TestFilters))
-    suite.addTests(loader.loadTestsFromTestCase(TestFilterEdgeCases))
-    suite.addTests(loader.loadTestsFromTestCase(TestToolRegistration))
-    suite.addTests(loader.loadTestsFromTestCase(TestToolShortcutsInCanvas))
-    suite.addTests(loader.loadTestsFromTestCase(TestHistoryEntry))
-    suite.addTests(loader.loadTestsFromTestCase(TestHistoryManager))
-    suite.addTests(loader.loadTestsFromTestCase(TestCanvasComposite))
-    suite.addTests(loader.loadTestsFromTestCase(TestCanvasSelection))
-    suite.addTests(loader.loadTestsFromTestCase(TestCanvasFileIO))
-    suite.addTests(loader.loadTestsFromTestCase(TestCanvasZoomPan))
-    suite.addTests(loader.loadTestsFromTestCase(TestCanvasDrawing))
-    suite.addTests(loader.loadTestsFromTestCase(TestCanvasMoveLayer))
+    for tc in [
+        TestBlendFunctions, TestLayer, TestAdjustmentLayer, TestGroupLayer,
+        TestLayerStack, TestFloatArrayConversion,
+        TestArrayConversion, TestFilters, TestFilterEdgeCases,
+        TestToolRegistration, TestToolShortcutsInCanvas,
+        TestHistoryEntry, TestHistoryManager,
+        TestCanvasComposite, TestCanvasSelection, TestCanvasFileIO,
+        TestCanvasZoomPan, TestCanvasDrawing, TestCanvasMoveLayer,
+        TestColorDodgeNoNan, TestColorBurnNoInf,
+        TestFilterPreservesAlpha, TestBrightnessClipping, TestCanvasMemory,
+        TestCreateDrawFilterSaveReopen, TestLayerAddPaintFlatten,
+        TestUndoRedoSequence, TestSelectionFillVerify,
+        TestLayerBlendModes, TestLayerOpacity,
+    ]:
+        suite.addTests(loader.loadTestsFromTestCase(tc))
 
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
