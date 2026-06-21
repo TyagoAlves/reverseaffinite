@@ -1,7 +1,6 @@
 import subprocess
 import json
 import os
-import re
 import numpy as np
 
 

@@ -1,6 +1,6 @@
 import json
-from PyQt5.QtCore import Qt, QPointF, QRectF
-from PyQt5.QtGui import QPainter, QPen, QColor, QFont
+from PyQt5.QtCore import Qt, QPointF
+from PyQt5.QtGui import QPen, QColor
 
 
 class Guide:

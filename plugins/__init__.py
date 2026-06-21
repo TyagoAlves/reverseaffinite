@@ -37,7 +37,7 @@ class PluginBase:
 class PluginManager:
     def __init__(self, plugin_dir=None):
         if plugin_dir is None:
-            plugin_dir = os.path.join(os.path.dirname(__file__), "plugins")
+            plugin_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "plugins")
         self.plugin_dir = os.path.abspath(plugin_dir)
         self.plugins = []
 

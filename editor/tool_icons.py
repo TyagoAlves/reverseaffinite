@@ -1,5 +1,5 @@
-from PyQt5.QtCore import Qt, QPoint, QPointF, QRect, QSize
-from PyQt5.QtGui import QPixmap, QPainter, QColor, QPen, QBrush, QPainterPath, QPolygonF, QFont, QIcon, QLinearGradient
+from PyQt5.QtCore import Qt, QPoint, QPointF, QRect
+from PyQt5.QtGui import QPixmap, QPainter, QColor, QPen, QBrush, QPainterPath, QPolygonF, QIcon, QLinearGradient
 import math
 
 

@@ -1,23 +1,21 @@
 import os
-from PyQt5.QtCore import Qt, QPointF, QRectF, pyqtSignal, QRect, QTimer, QUrl
+from PyQt5.QtCore import Qt, QPointF, QRectF, pyqtSignal, QRect, QTimer
 from PyQt5.QtGui import (
     QPainter, QPixmap, QPen, QColor, QImage, QBrush,
-    QTransform, QPolygonF, QFont, QFontMetrics, QBitmap, QRegion,
+    QPolygonF, QFont, QBitmap, QRegion,
     QPainterPath, QCursor,
 )
 from PyQt5.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
-import math
 from collections import deque
 import numpy as np
 
 from .layers import LayerStack, Layer
 from .history import HistoryManager
-from .tools import SHORTCUT_MAP, PencilTool
+from .tools import PencilTool
 from .guides import GuideManager
 from .snapping import SnappingEngine
 from .settings import SettingsManager
 from .file_formats import FORMAT_REGISTRY, get_format_for_filename
-from .path import Path
 
 
 class CanvasView(QGraphicsView):

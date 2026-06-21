@@ -1,9 +1,8 @@
 import os
-import time
-from PyQt5.QtCore import Qt, pyqtSignal, QSize, QTimer, QRect, QPoint
+from PyQt5.QtCore import Qt, pyqtSignal, QSize
 from PyQt5.QtGui import (
     QColor, QPixmap, QPainter, QIcon, QFont, QFontDatabase,
-    QBrush, QPen, QLinearGradient,
+    QPen,
 )
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel,

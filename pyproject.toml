@@ -26,8 +26,6 @@ markers = [
     "stress: marks stress tests (deselect with '-m \"not stress\"')",
     "perf: marks performance benchmarks (deselect with '-m \"not perf\"')",
 ]
-timeout = 60
-timeout_method = "thread"
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]

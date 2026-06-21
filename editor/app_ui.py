@@ -1267,7 +1267,7 @@ class MainWindow(QMainWindow):
         for layer in self.canvas.layer_stack.layers:
             new_img = QImage(w, h, QImage.Format_ARGB32)
             new_img.fill(Qt.transparent)
-            p = __import__('PyQt5.QtGui', fromlist=['QPainter']).QPainter(new_img)
+            p = QPainter(new_img)
             p.drawImage(0, 0, layer.image)
             p.end()
             layer.image = new_img

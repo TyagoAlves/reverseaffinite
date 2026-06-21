@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QImage, QColor, QPainter
+from PyQt5.QtGui import QImage, QColor
 import numpy as np
 
 from .blend_modes import BLEND_FUNCTIONS, blend_normal

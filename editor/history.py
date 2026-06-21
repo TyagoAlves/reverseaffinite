@@ -2,7 +2,7 @@ from collections import deque
 import copy
 import time
 from PyQt5.QtCore import QObject, pyqtSignal, Qt
-from PyQt5.QtGui import QPixmap, QImage
+from PyQt5.QtGui import QPixmap
 from .layers import Layer
 
 

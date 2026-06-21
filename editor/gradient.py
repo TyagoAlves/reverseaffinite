@@ -2,9 +2,8 @@
 Gradient data model for gradient editor.
 """
 
-import json
 import math
-from PyQt5.QtCore import QPointF, QLineF
+from PyQt5.QtCore import QLineF
 from PyQt5.QtGui import (
     QColor, QLinearGradient, QRadialGradient, QConicalGradient, QGradient,
 )
