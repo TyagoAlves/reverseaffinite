@@ -93,22 +93,20 @@ class SnappingEngine:
         if not self.enabled:
             return rect, None
 
-        snapped = QRectF(rect)
         snapped_info = None
 
         corners = [(rect.left(), rect.top()), (rect.right(), rect.top()),
                    (rect.left(), rect.bottom()), (rect.right(), rect.bottom())]
         snapped_corners = [QPointF(*c) for c in corners]
 
-        best_total = float("inf")
-        best_corners = list(snapped_corners)
-
         for i, (cx, cy) in enumerate(corners):
-            sp, _ = self.snap_point(
+            sp, info = self.snap_point(
                 QPointF(cx, cy), grid_spacing=grid_spacing,
                 guides=guides, other_layer_rects=other_layer_rects
             )
             snapped_corners[i] = sp
+            if info:
+                snapped_info = info
 
         snapped = QRectF(snapped_corners[0], snapped_corners[3])
         return snapped.normalized(), snapped_info

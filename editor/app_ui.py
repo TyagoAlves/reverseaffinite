@@ -1,6 +1,6 @@
 import os
 from PyQt5.QtCore import Qt, QSize, QSettings, QRectF
-from PyQt5.QtGui import QColor, QKeySequence, QFont, QIcon, QFontDatabase, QPixmap, QPainter, QBrush, QPen
+from PyQt5.QtGui import QColor, QKeySequence, QFont, QIcon, QFontDatabase, QPixmap, QPainter, QBrush, QPen, QPainterPath
 from PyQt5.QtWidgets import (
     QMainWindow, QAction, QFileDialog, QColorDialog,
     QToolBar, QToolButton, QSpinBox, QLabel, QComboBox,
@@ -908,6 +908,7 @@ class MainWindow(QMainWindow):
         adj_m.addAction(_("Brightness / Contrast"), lambda: self._add_adjustment("brightness_contrast"))
         adj_m.addAction(_("Hue / Saturation"), lambda: self._add_adjustment("hsl"))
         adj_m.addAction(_("Levels"), lambda: self._add_adjustment("levels"))
+        adj_m.addAction(_("Curves"), lambda: self._add_adjustment("curves"))
         layer_m.addSeparator()
         layer_m.addAction(_("Merge &Visible"), self._merge_visible)
         layer_m.addAction(_("&Flatten Image"), self._flatten)
@@ -1308,7 +1309,7 @@ class MainWindow(QMainWindow):
     def _add_adjustment(self, adj_type):
         canvas = self.canvas
         from .layers import AdjustmentLayer
-        from .filters import adjustment_brightness_contrast, adjustment_hsl, adjustment_levels
+        from .filters import adjustment_brightness_contrast, adjustment_hsl, adjustment_levels, adjustment_curves
 
         params = {}
         if adj_type == "brightness_contrast":
@@ -1394,6 +1395,84 @@ class MainWindow(QMainWindow):
             layout.addWidget(btn)
             dialog.exec_()
             func = adjustment_levels
+
+        elif adj_type == "curves":
+            dialog = QDialog(self)
+            dialog.setWindowTitle(_("Curves"))
+            layout = QVBoxLayout(dialog)
+
+            class CurveGraph(QWidget):
+                def __init__(self, parent=None):
+                    super().__init__(parent)
+                    self.setFixedSize(256, 256)
+                    self.points = [(0.0, 0.0), (1.0, 1.0)]
+                    self.drag_idx = -1
+
+                def paintEvent(self, ev):
+                    p = QPainter(self)
+                    p.setRenderHint(QPainter.Antialiasing)
+                    p.fillRect(self.rect(), QColor(30, 30, 30))
+                    p.setPen(QPen(QColor(60, 60, 60), 1))
+                    for i in range(5):
+                        x = i * 64
+                        p.drawLine(x, 0, x, 256)
+                        p.drawLine(0, x, 256, x)
+                    p.setPen(QPen(QColor(100, 150, 255), 2))
+                    pts = sorted(self.points, key=lambda pt: pt[0])
+                    path = QPainterPath()
+                    path.moveTo(pts[0][0] * 256, 256 - pts[0][1] * 256)
+                    for i in range(1, len(pts)):
+                        path.lineTo(pts[i][0] * 256, 256 - pts[i][1] * 256)
+                    p.drawPath(path)
+                    p.setBrush(QColor(200, 200, 200))
+                    p.setPen(Qt.NoPen)
+                    for px, py in pts:
+                        p.drawEllipse(QPointF(px * 256, 256 - py * 256), 4, 4)
+                    p.end()
+
+                def mousePressEvent(self, ev):
+                    x, y = ev.x() / 256.0, 1.0 - ev.y() / 256.0
+                    x = max(0.0, min(1.0, x))
+                    y = max(0.0, min(1.0, y))
+                    for i, (px, py) in enumerate(self.points):
+                        if abs(px - x) < 0.04 and abs(py - y) < 0.04:
+                            self.drag_idx = i
+                            return
+                    self.points.append((x, y))
+                    self.drag_idx = len(self.points) - 1
+                    self.update()
+
+                def mouseMoveEvent(self, ev):
+                    if self.drag_idx < 0:
+                        return
+                    x, y = ev.x() / 256.0, 1.0 - ev.y() / 256.0
+                    x = max(0.0, min(1.0, x))
+                    y = max(0.0, min(1.0, y))
+                    self.points[self.drag_idx] = (x, y)
+                    self.update()
+
+                def mouseReleaseEvent(self, ev):
+                    self.drag_idx = -1
+
+            graph = CurveGraph()
+            layout.addWidget(graph)
+            def on_ok():
+                pts = sorted(graph.points, key=lambda pt: pt[0])
+                params['points'] = pts
+                dialog.accept()
+            btn_layout = QHBoxLayout()
+            ok_btn = QPushButton(_("OK"))
+            ok_btn.clicked.connect(on_ok)
+            reset_btn = QPushButton(_("Reset"))
+            def on_reset():
+                graph.points = [(0.0, 0.0), (1.0, 1.0)]
+                graph.update()
+            reset_btn.clicked.connect(on_reset)
+            btn_layout.addWidget(ok_btn)
+            btn_layout.addWidget(reset_btn)
+            layout.addLayout(btn_layout)
+            dialog.exec_()
+            func = adjustment_curves
 
         if not params:
             return

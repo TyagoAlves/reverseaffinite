@@ -506,13 +506,28 @@ class CanvasView(QGraphicsView):
         self._apply_pixel_op(pos, self._sponge_func, amount)
 
     def dodge_line(self, p1, p2, exposure=0.5):
-        self.dodge_point(p2, exposure)
+        steps = max(int(p1.distance(p2) / 2), 1)
+        for t in range(steps + 1):
+            frac = t / steps
+            pt = QPointF(p1.x() + (p2.x() - p1.x()) * frac,
+                         p1.y() + (p2.y() - p1.y()) * frac)
+            self.dodge_point(pt, exposure)
 
     def burn_line(self, p1, p2, exposure=0.5):
-        self.burn_point(p2, exposure)
+        steps = max(int(p1.distance(p2) / 2), 1)
+        for t in range(steps + 1):
+            frac = t / steps
+            pt = QPointF(p1.x() + (p2.x() - p1.x()) * frac,
+                         p1.y() + (p2.y() - p1.y()) * frac)
+            self.burn_point(pt, exposure)
 
     def saturate_line(self, p1, p2, amount=0.5):
-        self.saturate_point(p2, amount)
+        steps = max(int(p1.distance(p2) / 2), 1)
+        for t in range(steps + 1):
+            frac = t / steps
+            pt = QPointF(p1.x() + (p2.x() - p1.x()) * frac,
+                         p1.y() + (p2.y() - p1.y()) * frac)
+            self.saturate_point(pt, amount)
 
     def get_pixel_color(self, pos):
         layer = self.layer_stack.active
@@ -676,9 +691,12 @@ class CanvasView(QGraphicsView):
         h = self.selection_mask.height()
         painter.save()
         painter.setPen(Qt.NoPen)
-        tint = QColor(60, 120, 255, 40)
-        painter.setBrush(QBrush(tint))
-        painter.drawImage(0, 0, self.selection_mask)
+        painter.setCompositionMode(QPainter.CompositionMode_SourceOver)
+        sel_pix = QPixmap.fromImage(self.selection_mask)
+        tinted = QPixmap(w, h)
+        tinted.fill(QColor(60, 120, 255, 40))
+        tinted.setMask(sel_pix.createHeuristicMask())
+        painter.drawPixmap(0, 0, tinted)
         if self.selection_path is not None:
             pen = QPen(QColor(60, 120, 255), 1, Qt.CustomDashLine)
             pen.setDashPattern([6, 4])
@@ -774,7 +792,7 @@ class CanvasView(QGraphicsView):
             else:
                 path.lineTo(curr)
         painter.setPen(QPen(QColor(self.tool_color), 1.5 / self.zoom_level))
-        painter.setBrush(QBrush(self.tool_color, Qt.NoBrush))
+        painter.setBrush(Qt.NoBrush)
         painter.drawPath(path)
         for pt in self.pen_path:
             painter.setBrush(QBrush(self.tool_color))

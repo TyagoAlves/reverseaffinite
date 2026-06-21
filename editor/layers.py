@@ -5,7 +5,7 @@ import numpy as np
 from .blend_modes import BLEND_FUNCTIONS, blend_normal
 
 BLEND_FUNCS = BLEND_FUNCTIONS
-BLEND_MODES = list(BLEND_FUNCS.keys()) + ["Hue", "Saturation", "Color", "Luminosity"]
+BLEND_MODES = list(BLEND_FUNCS.keys())
 
 
 def _float_array_to_qimage(arr, w, h):

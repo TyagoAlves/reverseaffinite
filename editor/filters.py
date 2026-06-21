@@ -3,6 +3,8 @@ from PyQt5.QtGui import QImage, QColor
 
 
 def to_array(img):
+    if img.format() != QImage.Format_RGBA8888:
+        img = img.convertToFormat(QImage.Format_RGBA8888)
     w, h = img.width(), img.height()
     if w < 1 or h < 1:
         return np.zeros((0, 0, 4), dtype=np.uint8)
@@ -15,7 +17,9 @@ def from_array(arr):
     if arr.size == 0:
         return QImage()
     h, w = arr.shape[:2]
-    return QImage(arr.data, w, h, QImage.Format_ARGB32).copy()
+    arr = np.ascontiguousarray(arr)
+    qimg = QImage(arr.data, w, h, 4 * w, QImage.Format_RGBA8888)
+    return qimg.copy()
 
 
 def _convolve(ch, kernel):
@@ -197,6 +201,13 @@ def adjustment_levels(img, params):
         d = 1
     a[..., :3] = np.clip(((a[..., :3] - shadow) / d) ** mid * 255, 0, 255)
     return from_array(a.astype(np.uint8))
+
+
+def adjustment_curves(img, params):
+    points = params.get('points')
+    if not points or len(points) < 2:
+        return img
+    return curves(img, points)
 
 
 def heal_patch(src_arr, dst_arr, radius):

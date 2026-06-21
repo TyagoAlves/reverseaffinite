@@ -70,8 +70,11 @@ class HistoryManager(QObject):
             except Exception:
                 composite_img = None
 
-        snap = [(l.name, l.image.copy(), l.visible, l.locked, l.opacity, l.blend_mode)
-                for l in layers]
+        snap = [
+            (l.name, l.image.copy(), l.visible, l.locked, l.opacity, l.blend_mode,
+             l.fill, l.mask.copy() if l.mask else None, l.mask_enabled, l.mask_linked)
+            for l in layers if hasattr(l, 'image')
+        ]
         entry = HistoryEntry(description, snap, active_index, composite_img)
 
         while self.index < len(self.stack) - 1:
@@ -92,13 +95,19 @@ class HistoryManager(QObject):
         if entry.snapshot is None:
             return False
         layer_stack.layers.clear()
-        for name, img, vis, locked, opacity, blend in entry.snapshot:
+        for data in entry.snapshot:
+            name, img, vis, locked, opacity, blend = data[:6]
             l = Layer(img.width(), img.height(), name)
             l.image = img
             l.visible = vis
             l.locked = locked
             l.opacity = opacity
             l.blend_mode = blend
+            if len(data) > 6:
+                l.fill = data[6]
+                l.mask = data[7].copy() if data[7] else None
+                l.mask_enabled = data[8]
+                l.mask_linked = data[9]
             layer_stack.layers.append(l)
         layer_stack.active_index = entry.active_index
         return True

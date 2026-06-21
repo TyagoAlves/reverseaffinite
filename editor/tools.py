@@ -232,18 +232,17 @@ class CloneStampTool(Tool):
     clone_source = None
 
     def press(self, canvas, pos, mods):
-        if mods & 0x04000000:  # Alt
+        if mods & Qt.AltModifier:
             self.clone_source = pos
         elif self.clone_source:
             canvas.clone_stamp(self.clone_source, pos)
 
     def move(self, canvas, last, pos, mods):
-        if self.clone_source and not (mods & 0x04000000):
+        if self.clone_source and not (mods & Qt.AltModifier):
             dx = pos.x() - last.x()
             dy = pos.y() - last.y()
-            src = canvas.clone_source
-            canvas.clone_stamp(src, pos)
-            canvas.clone_source = src + dx
+            canvas.clone_stamp(self.clone_source, pos)
+            self.clone_source = QPointF(self.clone_source.x() + dx, self.clone_source.y() + dy)
 
 
 class ColorPickerTool(Tool):
