@@ -9,6 +9,7 @@
   body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; padding: 20px; }
   .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
   h1 { color: #58a6ff; font-size: 24px; margin-bottom: 16px; }
+  h1 small { color: #8b949e; font-size: 14px; font-weight: normal; }
   h2 { color: #8b949e; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
   .stat { background: #1c2128; border-radius: 6px; padding: 16px; text-align: center; }
@@ -20,6 +21,7 @@
   th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #21262d; font-size: 13px; }
   th { color: #8b949e; font-weight: 600; }
   td { font-family: 'SF Mono', 'Consolas', monospace; }
+  .repo-ok { color: #3fb950; } .repo-err { color: #f85149; }
   .status { font-size: 13px; line-height: 1.6; }
   .timestamp { color: #8b949e; font-size: 12px; text-align: right; margin-top: 16px; }
   a { color: #58a6ff; text-decoration: none; }
@@ -27,35 +29,64 @@
 </style>
 </head>
 <body>
-<h1>reverseaffinity — SRE Dashboard</h1>
+<h1>reverseaffinity <small>Ecosystem SRE Dashboard</small></h1>
 
 <div class="grid">
-  <div class="stat"><div class="stat-value">87%</div><div class="stat-label">Sprint Progress</div></div>
-  <div class="stat"><div class="stat-value">140</div><div class="stat-label">Files</div></div>
-  <div class="stat"><div class="stat-value">15,655</div><div class="stat-label">Python Lines</div></div>
+  <div class="stat"><div class="stat-value">90%</div><div class="stat-label">Sprint Progress</div></div>
+  <div class="stat"><div class="stat-value">6</div><div class="stat-label">Repositories</div></div>
+  <div class="stat"><div class="stat-value">6</div><div class="stat-label">Healthy</div></div>
   <div class="stat"><div class="stat-value">30</div><div class="stat-label">Sprint Tasks</div></div>
 </div>
 
-<div class="progress-bar"><div class="progress-fill" style="width: 86.66666666666667%"></div></div>
+<div class="progress-bar"><div class="progress-fill" style="width: 90.0%"></div></div>
 <br>
 
-<div class="grid">
-  <div class="stat"><div class="stat-value">26</div><div class="stat-label">Done</div></div>
-  <div class="stat"><div class="stat-value">15</div><div class="stat-label">Recent Commits</div></div>
-  <div class="stat"><div class="stat-value">main</div><div class="stat-label">Branch</div></div>
-  <div class="stat"><div class="stat-value">github.com/TyagoAlves/reverseaffinity.git</div><div class="stat-label">Remote</div></div>
+<div class="card">
+  <h2>Repository Health</h2>
+  <table><thead><tr><th>Repository</th><th>Branch</th><th>Hash</th><th>Last Commit</th><th>Message</th></tr></thead><tbody><tr>
+          <td>🟢 reverseaffinity (monorepo) ✏️3</td>
+          <td>main</td>
+          <td>b828977</td>
+          <td>2026-06-21 16:15:52 +0000</td>
+          <td>Update reverse.txt: 27/30, Sprint 3 complete (C++ blocked)</td>
+        </tr><tr>
+          <td>🟢 reverseaffinity-video</td>
+          <td>master</td>
+          <td>d4d9456</td>
+          <td>2026-06-21 16:15:33 +0000</td>
+          <td>Fix Path import in tools.py</td>
+        </tr><tr>
+          <td>🟢 reverseaffinity-photo</td>
+          <td>master</td>
+          <td>c6a8924</td>
+          <td>2026-06-21 16:15:35 +0000</td>
+          <td>Fix Path import in tools.py</td>
+        </tr><tr>
+          <td>🟢 reverseaffinity-effects</td>
+          <td>master</td>
+          <td>6895912</td>
+          <td>2026-06-21 16:15:36 +0000</td>
+          <td>Fix Path import in tools.py</td>
+        </tr><tr>
+          <td>🟢 CineCPP-Core</td>
+          <td>main</td>
+          <td>634adf7</td>
+          <td>2026-06-21 15:56:37 +0000</td>
+          <td>fix: remove duplicate Z binding in Adobe Premiere keymap, fix FFmpeg frame read for non-contiguous linesize, add .gitignore, untrack build/ artifacts</td>
+        </tr><tr>
+          <td>🟢 opencode-lite</td>
+          <td>main</td>
+          <td>3344912</td>
+          <td>2026-06-21 15:57:21 +0000</td>
+          <td>fix: dynamic working dir path in system prompt, add .env file support for API keys</td>
+        </tr></tbody></table>
 </div>
 
 <div class="card">
-  <h2>Recent Commits</h2>
-  <table><thead><tr><th>Hash</th><th>Date</th><th>Message</th></tr></thead><tbody><tr><td>5c87865</td><td>2026-06-21 16:09:14 +0000</td><td>Update reverse.txt: 26/30 tasks, T09+T28 done</td></tr><tr><td>e3dd7ab</td><td>2026-06-21 16:08:07 +0000</td><td>T28: Expand plugin system skeleton</td></tr><tr><td>f1d6c5f</td><td>2026-06-21 16:05:29 +0000</td><td>T09: Pen tool interactive bezier handles</td></tr><tr><td>2da9465</td><td>2026-06-21 15:58:32 +0000</td><td>sync: i18n locale files (550 keys), preferences language propagation, SIMD blend modes (overlay, darken, lighten, diff, add, sub, dodge, burn, soft_light)</td></tr><tr><td>c88e641</td><td>2026-06-21 00:02:02 +0000</td><td>fix: 12 bugs fixed + feat: Curves adjustment layer + 36 new tests</td></tr><tr><td>64cbdc9</td><td>2026-06-20 23:51:04 +0000</td><td>fix: test_regressions.py imports blend_modes directly (was removed by refactor)</td></tr><tr><td>8b59cb2</td><td>2026-06-20 23:35:20 +0000</td><td>fix: blend_normal import in layers.py (was removed by mistake in refactor)</td></tr><tr><td>f5d74bf</td><td>2026-06-20 23:25:34 +0000</td><td>feat: T28 plugin system skeleton — PluginBase, PluginManager, example plugin, integration in MainWindow</td></tr><tr><td>d9cce1c</td><td>2026-06-20 23:22:30 +0000</td><td>refactor: relative imports in app_ui, remove dead blend aliases in layers, rename GPU_BACKEND -> GpuBackend, remove dead rgb_to_lab</td></tr><tr><td>69cb02a</td><td>2026-06-20 23:15:53 +0000</td><td>fix: getstarted.ps1 rewrite — winget for Python, descompactacao robusta, atalho desktop, logging claro</td></tr><tr><td>a23b0d3</td><td>2026-06-20 22:53:40 +0000</td><td>feat: brush presets UI, history thumbnails, zoom-to-selection, 4 new locales</td></tr><tr><td>b082eb4</td><td>2026-06-20 21:51:07 +0000</td><td>feat: custom dark FileDialog (Adobe-style); remove OpenCode console</td></tr><tr><td>8da866c</td><td>2026-06-20 21:44:34 +0000</td><td>fix: rename OpenCode -> Python Console; cap window size to screen</td></tr><tr><td>31b62ee</td><td>2026-06-20 21:30:39 +0000</td><td>fix: AppCard.mousePressEvent chama parent window open_app</td></tr><tr><td>cf61caf</td><td>2026-06-20 21:25:59 +0000</td><td>fix: _() shadowing (trocar _ -> _filter), float→int no timecode, drawText types</td></tr></tbody></table>
+  <h2>Sprint Status</h2>
+  <div class="status">=== reverseaffinity — Sprint 3 Status ===<br>Data: 2026-06-21 17:00 UTC<br>Branch: main<br>Último commit: Fix Path import in tools.py + add 17 vector path tests<br><br>Resumo: 30 agentes, 27/30 tasks done (90%), 0 progress, 2 todo (blocked)<br><br>=== Tasks Done (27) ===<br>T01-T04 (merges), T05 (test fixes), T06 (layer masks), T07 (layer groups),<br>T08 (UI wiring), T09 (pen tool interativo — handles bezier),<br>T10 (brush presets), T11 (preferences+i18n), T12 (history thumbs),<br>T13 (snapping), T14 (gradient editor), T15 (C++ SIMD blends 12 modos),<br>T18 (palettes), T19 (guides), T20 (zoom), T21 (crop tool),<br>T22 (dodge/burn/sponge), T23 (export PSD/TIFF/WebP), T24 (coverage),<br>T25 (benchmarks), T26 (dark theme), T27 (i18n FR/DE/IT/JP),<br>T28 (plugin sistema — esqueleto + Starry exemplo), T29 (docs),<br>T30 (SRE dashboard telemetria)<br><br>=== Tasks Blocked (2, C++ — Qt5 dev não disponível) ===<br>T16 (port history system C++), T17 (GPU acceleration filters OpenGL)<br><br>=== Novas implementações (Sprint 3) ===<br>1. video_app.py reescrito com funcionalidade real<br>2. timeline_widget.py: tracks, clips, zoom<br>3. S3 AppImage: reverseaffinity-x86_64.AppImage<br>4. main.py: _get_app() pattern, runners dict<br>5. T09: Pen tool com handles bezier interativos (vector_paths, drag, insert, delete)<br>6. T15: 12 SIMD blend modes portados C++ SSE/AVX<br>7. T27: i18n 7 línguas (550 keys)<br>8. T28: Plugin system (register_tools, register_formats, register_panels, on_unload)<br>9. T30: SRE dashboard (scripts/sre_dashboard.py → docs/sre_dashboard.html)<br>10. 246 testes passando (vs 229), 17 novos testes de vector path<br><br></div>
 </div>
 
-<div class="card">
-  <h2>Status</h2>
-  <div class="status">=== reverseaffinity — Sprint 3 Status ===<br>Data: 2026-06-21 16:00 UTC<br>Branch: main<br>Último commit: T28: Expand plugin system skeleton<br><br>Resumo: 30 agentes, 26/30 tasks done (86.7%), 2 progress, 2 todo<br><br>=== Tasks Done (26) ===<br>T01-T04 (merges), T05 (test fixes), T06 (layer masks), T07 (layer groups),<br>T08 (UI wiring), T09 (pen tool interativo — handles bezier),<br>T10 (brush presets), T11 (preferences+i18n), T12 (history thumbs),<br>T13 (snapping), T14 (gradient editor), T15 (C++ SIMD blends 12 modos),<br>T18 (palettes), T19 (guides), T20 (zoom), T21 (crop tool),<br>T22 (dodge/burn/sponge), T23 (export PSD/TIFF/WebP), T24 (coverage),<br>T25 (benchmarks), T26 (dark theme), T27 (i18n FR/DE/IT/JP),<br>T28 (plugin sistema — esqueleto + Starry exemplo), T29 (docs)<br><br>=== Tasks In Progress (2) ===<br>T30 (dashboard telemetria)<br><br>=== Tasks Todo (2) ===<br>T16 (C++ history), T17 (GPU filters)<br><br>=== Novas implementações (Sprint 3) ===<br>1. video_app.py reescrito com funcionalidade real:<br>   - SourceMonitor, ProjectPanel, VideoMainWindow, transport<br>2. timeline_widget.py: add_track, remove_track, clear, zoom, clips<br>3. S3 AppImage: reverseaffinity-x86_64.AppImage<br>4. main.py: _get_app() pattern, runners dict, --help<br>5. T09: Pen tool com handles bezier interativos:<br>   - vector_paths persistentes no canvas<br>   - seleção/drag de anchors e handles<br>   - inserir anchor em segmento (click no meio)<br>   - Backspace deleta anchor<br>   - overlay visual: pontos azuis, handles laranja, linhas controle<br>6. T15: 12 SIMD blend modes portados C++ SSE/AVX<br>7. T27: i18n 7 línguas (550 keys, PT-BR, EN, ES, FR, DE, IT, JP)<br>8. T28: Plugin system:<br>   - register_tools() → TOOLS_BY_NAME, SHORTCUT_MAP, TOOL_LIST<br>   - register_file_formats() → FORMAT_REGISTRY<br>   - register_panels() → right_tabs<br>   - closeEvent → on_unload<br>   - Starry Sky exemplo: tool + panel + filter<br><br>=== Dashboard SRE ===<br>URL: http://16.59.211.231/<br><br>=== Próximos passos ===<br>1. T30: dashboard telemetria<br>2. T16: port history C++ (blocked: Qt5 dev não disponível)<br>3. T17: GPU filters OpenGL (blocked: Qt5 dev não disponível)<br><br></div>
-</div>
-
-<div class="timestamp">Generated: 2026-06-21 16:09 UTC</div>
+<div class="timestamp">Generated: 2026-06-21 16:22 UTC</div>
 </body>
 </html>
